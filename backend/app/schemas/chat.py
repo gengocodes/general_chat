@@ -1,0 +1,138 @@
+"""
+Chat request and response schemas for GenChat AI Agent
+"""
+
+from typing import Annotated, Literal, Union, TypedDict, Generic, TypeVar
+from pydantic import BaseModel, ConfigDict, Field
+
+T = TypeVar("T")
+
+
+class AgentToolResult(BaseModel, Generic[T]):
+    """Generic strongly-typed response model for agent tools."""
+
+    success: bool = Field(..., description="Whether the tool operation succeeded")
+    message: str = Field(..., description="Human-readable result or error message")
+    data: T | None = Field(default=None, description="Typed result payload")
+
+
+class DocumentConvertResult(BaseModel):
+    """Result payload for document tools."""
+
+    original_filename: str = Field(..., description="Name of original file")
+    converted_filename: str = Field(..., description="Name of converted file")
+    output_format: str = Field(..., description="Output file extension e.g. pdf, docx")
+    download_url: str = Field(..., description="Local or served URL to download the file")
+
+
+class ChatHistoryMessage(BaseModel):
+    """Schema representing a past message turn in the conversation"""
+
+    role: Literal["user", "assistant"] = Field(..., description="Sender role")
+    content: str = Field(
+        ..., min_length=1, max_length=5000, description="Message text content"
+    )
+
+
+class ChatRequest(BaseModel):
+    """Chat request schema with optional attached file IDs/names"""
+
+    message: str = Field(..., min_length=1, description="User prompt or instruction")
+    history: list[ChatHistoryMessage] = Field(
+        default_factory=list, description="Prior conversation history"
+    )
+    attached_files: list[str] = Field(
+        default_factory=list, description="List of attached filenames or paths in uploads/"
+    )
+
+
+class ChatResponse(BaseModel):
+    """Chat response schema"""
+
+    message: str = Field(..., description="Assistant response content")
+
+
+class GeminiContentBlock(BaseModel):
+    """Structured content block returned by Gemini through LangChain AIMessage."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    type: str
+    text: str
+
+
+StreamStatus = Literal["analyzing", "executing_tools"]
+ActivityStatus = Literal["started", "completed"]
+
+
+class StreamActivityEvent(BaseModel):
+    """Event emitted for milestone activity lifecycle"""
+
+    type: Literal["activity"] = "activity"
+    id: str
+    message: str
+    status: ActivityStatus
+
+
+class StreamStatusEvent(BaseModel):
+    """Event emitted when agent status changes"""
+
+    type: Literal["status"] = "status"
+    status: StreamStatus
+    message: str | None = None
+
+
+class StreamToolStartEvent(BaseModel):
+    """Event emitted before executing a tool"""
+
+    type: Literal["tool_start"] = "tool_start"
+    tool_name: str
+
+
+class StreamToolEndEvent(BaseModel):
+    """Event emitted after executing a tool"""
+
+    type: Literal["tool_end"] = "tool_end"
+    tool_name: str
+
+
+class StreamTokenEvent(BaseModel):
+    """Event emitted for each streamed response token"""
+
+    type: Literal["token"] = "token"
+    token: str
+
+
+class StreamErrorEvent(BaseModel):
+    """Event emitted when an error occurs during streaming"""
+
+    type: Literal["error"] = "error"
+    error: str
+
+
+class StreamCompleteEvent(BaseModel):
+    """Event emitted when streaming completes successfully"""
+
+    type: Literal["complete"] = "complete"
+
+
+AgentStreamEvent = Annotated[
+    Union[
+        StreamStatusEvent,
+        StreamActivityEvent,
+        StreamToolStartEvent,
+        StreamToolEndEvent,
+        StreamTokenEvent,
+        StreamErrorEvent,
+        StreamCompleteEvent,
+    ],
+    Field(discriminator="type"),
+]
+
+
+class ToolActivityConfig(TypedDict):
+    """Configuration for tool's activity lifecycle"""
+
+    id: str
+    started: str
+    completed: str
