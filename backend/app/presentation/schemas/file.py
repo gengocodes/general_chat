@@ -1,3 +1,5 @@
+"""Presentation schemas for file operations."""
+
 from pydantic import BaseModel, Field
 
 

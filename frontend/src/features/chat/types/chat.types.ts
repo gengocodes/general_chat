@@ -41,10 +41,6 @@ export interface ChatRequest {
   attached_files?: string[];
 }
 
-export interface ChatResponse {
-  message: string;
-}
-
 export type StreamStatus = "analyzing" | "executing_tools";
 
 export interface StreamStatusEvent {
@@ -96,7 +92,6 @@ export type AgentStreamEvent =
 export type StreamEventCallback = (event: AgentStreamEvent) => void;
 
 export interface ChatServiceContract {
-  sendMessage(payload: ChatRequest): Promise<ChatResponse>;
   streamMessage(
     payload: ChatRequest,
     onEvent: StreamEventCallback,

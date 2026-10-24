@@ -56,3 +56,4 @@ backend/*.egg-info/
 # Uploads runtime storage (keep folder via .gitkeep)
 backend/uploads/*
 !backend/uploads/.gitkeep
+AGENTS.md

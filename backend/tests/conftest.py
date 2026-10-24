@@ -1,0 +1,9 @@
+"""Pytest test configuration and fixtures."""
+
+import os
+
+
+# Ensure required environment variables for test execution
+os.environ.setdefault("GEMINI_API_KEY", "test-api-key")
+os.environ.setdefault("GEMINI_MODEL", "gemini-test-model")
+os.environ.setdefault("FRONTEND_ORIGIN", "http://localhost:3000")

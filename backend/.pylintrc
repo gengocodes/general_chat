@@ -1,0 +1,7 @@
+[MAIN]
+# Ensure packages are discoverable whether running from root or backend directory
+init-hook='import sys, os; sys.path.extend([os.path.abspath("backend"), os.path.abspath("."), os.path.abspath("app")])'
+source-roots=.,app,backend
+
+[FORMAT]
+max-line-length=100

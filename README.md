@@ -1,104 +1,201 @@
-# GenChat - Paul Corsino's Reusable General AI Assistant Starter Kit
+# GenChat
 
-A production-ready, modular, full-stack AI agent application template designed by Paul Corsino. GenChat features real-time token streaming (SSE), collapsible thought timelines, sequential activity badges, tool calling, and file attachment handling.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg?logo=next.js&logoColor=white)](https://nextjs.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Pylint](https://img.shields.io/badge/Pylint-10.0%2F10-brightgreen.svg)](https://pylint.org)
 
-Built to serve as a clean, reusable foundation for future AI chat projects.
+GenChat is a full-stack AI agent monorepo built with a **Strict Clean Architecture** Python/FastAPI backend and a feature-sliced Next.js 16 (App Router) frontend. It provides real-time Server-Sent Events (SSE) token and activity streaming, bounded multi-turn tool execution, and streaming file operations.
+
+- **Backend Engineering Guide:** [`backend/README.md`](backend/README.md)
+- **Engineering Standards & Architecture Rules:** [`AGENTS.md`](AGENTS.md)
+
+---
+
+## Repository Structure
+
+```text
+genchat/
+├── backend/                       # FastAPI Clean Architecture modular monolith
+│   ├── app/
+│   │   ├── domain/                # Entities, value objects, stream events, domain errors
+│   │   ├── application/           # Use cases, outbound ports (ABC), prompt templates
+│   │   ├── infrastructure/        # LangChain/Gemini adapter, tool executor, storage, document service
+│   │   ├── presentation/          # FastAPI routers, transport schemas (DTOs), composition root
+│   │   ├── config.py              # Environment settings (Pydantic Settings)
+│   │   └── main.py                # ASGI entrypoint, CORS, global exception handling
+│   ├── tests/                     # Unit and API integration tests
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── README.md                  # Backend developer & architecture guide
+├── frontend/                      # Next.js 16 (App Router), TypeScript, Tailwind CSS, Zustand
+│   ├── src/
+│   │   ├── app/                   # Root layout and application route shell
+│   │   ├── features/chat/         # Chat UI components, hooks, Zustand store, API service
+│   │   ├── shared/                # Fetch-based SSE stream parser and shared UI primitives
+│   │   └── types/                 # Shared TypeScript contracts
+│   └── package.json
+├── docker-compose.yml             # Local container orchestration
+├── AGENTS.md                      # Non-negotiable engineering & architectural rules
+└── .pylintrc                      # Root linter configuration
+```
 
 ---
 
 ## Architecture Overview
 
+### Backend (`backend/`)
+
+The backend enforces strict inward dependency direction (`Presentation` → `Application` → `Domain` ← `Infrastructure`):
+
+```mermaid
+flowchart TD
+    subgraph Presentation["Presentation Layer (app/presentation)"]
+        ChatRouter["routers/chat.py\n(POST /api/chat/stream)"]
+        UploadRouter["routers/upload.py\n(POST /upload, GET /download)"]
+        Deps["dependencies.py\n(Composition Root)"]
+    end
+
+    subgraph Application["Application Layer (app/application)"]
+        StreamUC["StreamChatMessageUseCase\n(History & Prompt Policy)"]
+        FileUC["UploadFileUseCase /\nGetFileDownloadUseCase"]
+        ChatPort["ChatModelPort (ABC)"]
+        StoragePort["FileStoragePort (ABC)"]
+        DocPort["DocumentProcessorPort (ABC)"]
+    end
+
+    subgraph Domain["Domain Layer (app/domain)"]
+        Entities["Entities & Value Objects\n(ChatMessage, StoredFile, FileDownload)"]
+        Events["Stream Events & Tool Envelopes\n(AgentStreamEvent, AgentToolResult)"]
+        Errors["Domain Exceptions\n(DomainError Hierarchy)"]
+    end
+
+    subgraph Infrastructure["Infrastructure Layer (app/infrastructure)"]
+        LCAdapter["LangChainChatAdapter\n+ ToolExecutor"]
+        DocTools["document_tools.py"]
+        LocalStore["LocalStorageAdapter"]
+        LocalDoc["LocalDocumentService"]
+    end
+
+    ChatRouter --> StreamUC
+    UploadRouter --> FileUC
+    Deps -.->|"wires"| StreamUC
+    Deps -.->|"wires"| FileUC
+    Deps -.->|"wires"| LCAdapter
+    Deps -.->|"wires"| LocalStore
+
+    StreamUC --> ChatPort
+    FileUC --> StoragePort
+    StreamUC --> Entities
+    FileUC --> Entities
+
+    ChatPort --> Entities
+    ChatPort --> Events
+    StoragePort --> Entities
+
+    LCAdapter -.->|"implements"| ChatPort
+    LocalStore -.->|"implements"| StoragePort
+    LocalDoc -.->|"implements"| DocPort
+    LCAdapter --> DocTools
+    DocTools --> DocPort
+    LocalStore --> Errors
+    LocalDoc --> Errors
 ```
-genchat/
-├── backend/                       # FastAPI + LangChain Agent
-│   ├── app/
-│   │   ├── routers/
-│   │   │   ├── chat.py            # POST /api/chat/stream (SSE streaming)
-│   │   │   └── upload.py          # POST /api/files/upload & GET /download
-│   │   ├── schemas/chat.py        # Typed SSE event definitions
-│   │   ├── services/
-│   │   │   ├── agent_service.py   # Multi-turn LangChain agent with sequential activities
-│   │   │   └── tool_executor.py   # Modular tool execution & deduplication
-│   │   ├── tools/                 # Pluggable LangChain tools
-│   │   └── prompts/agent.py       # System prompt & agent instructions
-│   └── requirements.txt
-│
-└── frontend/                      # Next.js 16 (App Router) + Tailwind + Zustand
-    ├── src/
-    │   ├── app/                   # Full-screen responsive chat layout
-    │   ├── features/chat/
-    │   │   ├── components/        # ChatWindow, ChatInput, ExecutionTimeline, ChatMessage
-    │   │   ├── hooks/useChat.ts   # Stream controller & execution timer
-    │   │   ├── store/chat.store.ts# Message state & attached files store
-    │   │   └── services/          # SSE stream reader
-    │   └── shared/api/stream.ts   # Decoupled SSE event parser
-    └── package.json
-```
+
+1. **Domain (`app/domain/`):** Zero external framework or transport dependencies. Defines frozen dataclasses for entities and value objects (`ChatMessage`, `StoredFile`, `FileDownload`), discriminated union stream events (`AgentStreamEvent`), tool envelopes (`AgentToolResult[T]`), and the `DomainError` exception hierarchy.
+2. **Application (`app/application/`):** Orchestrates business rules, conversation history sanitization/truncation, and prompt construction. Declares abstract ports (`ChatModelPort`, `FileStoragePort`, `DocumentProcessorPort`) typed exclusively with domain models.
+3. **Infrastructure (`app/infrastructure/`):** Concrete port implementations (`LangChainChatAdapter`, `LocalStorageAdapter`, `LocalDocumentService`, `ToolExecutor`). Translates vendor/OS exceptions into `DomainError` subclasses at the port boundary.
+4. **Presentation (`app/presentation/`):** FastAPI routers (`/api/chat/stream`, `/api/files`), Pydantic transport DTOs, SSE frame serialization, and the Composition Root (`dependencies.py`).
+
+See [`backend/README.md`](backend/README.md) for detailed architecture and sequence diagrams, plus guidelines on adding use cases, ports, typed value objects, and cohesive helper functions.
+
+### Frontend (`frontend/`)
+
+- **State Management:** Zustand store (`features/chat/store/chat.store.ts`) tracking messages, attachments, active tool executions, and thought-duration timers.
+- **SSE Client:** Custom `ReadableStream` chunk parser (`shared/api/stream.ts`) handling incremental token and activity events over `POST /api/chat/stream`.
 
 ---
 
-## Quickstart
+## SSE Event Protocol (`POST /api/chat/stream`)
 
-### 1. Backend Setup
+Events are streamed as `data: <JSON>\n\n` frames discriminated by `"type"`:
+
+| `type` | Payload | Description |
+| :--- | :--- | :--- |
+| `status` | `{"type": "status", "status": "analyzing" \| "executing_tools", "message": string}` | Agent phase transition |
+| `activity` | `{"type": "activity", "id": string, "message": string, "status": "started" \| "completed"}` | Execution timeline milestone |
+| `tool_start` | `{"type": "tool_start", "tool_name": string}` | Tool invocation started |
+| `tool_end` | `{"type": "tool_end", "tool_name": string}` | Tool invocation completed |
+| `token` | `{"type": "token", "token": string}` | Incremental assistant text token |
+| `error` | `{"type": "error", "error": string}` | Terminal stream error message |
+| `complete` | `{"type": "complete"}` | Generation completed |
+
+---
+
+## Local Development
+
+### Prerequisites
+
+- Docker & Docker Compose (or Python 3.11+ for local virtual environment execution)
+- Node.js 18+
+- Google Gemini API key
+
+### 1. Start the Backend
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Set `GEMINI_API_KEY`, `GEMINI_MODEL`, and `FRONTEND_ORIGIN` in `backend/.env`, then run via Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Or run directly in a Python virtual environment:
 
 ```bash
 cd backend
-
-# Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Open .env and add your GEMINI_API_KEY
-
-# Start API server
 uvicorn app.main:app --port 8000 --reload
 ```
 
-Backend will be running at `http://localhost:8000`. Test the health check at `http://localhost:8000/health`.
+- **API Base URL:** `http://localhost:8000`
+- **Health Check:** `GET http://localhost:8000/health`
+- **OpenAPI Docs:** `http://localhost:8000/docs`
 
-### 2. Frontend Setup
+### 2. Start the Frontend
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start Next.js development server
 npm run dev
 ```
 
-Frontend will be running at `http://localhost:3000`.
+Application UI is served at `http://localhost:3000`.
 
 ---
 
-## Git Repository Setup
+## Verification & Quality Gates
 
-To initialize and connect to GitHub:
+All changes must pass static analysis, type checking, and automated test suites before merge:
 
 ```bash
-cd /Users/paulcorsino/Documents/GitHub/genchat
-git init
-git add .
-git commit -m "Initial commit of GenChat"
+# Backend unit & API integration tests
+python -m pytest backend/tests -v
 
-# Connect to your GitHub remote:
-# git remote add origin https://github.com/your-username/genchat.git
-# git push -u origin main
+# Backend static analysis (must score 10.00/10)
+python -m pylint backend/app backend/tests
+
+# Frontend TypeScript check
+cd frontend && npx tsc --noEmit
 ```
 
 ---
 
-## Features & Highlights
+## License
 
-1. **Real-time Server-Sent Events (SSE)**: Streams tokens chunk-by-chunk using LangChain's `astream_events(version="v2")`.
-2. **Sequential Activity Timeline**: Real-time status badges with activity lifecycle events that indicate when tools are executing.
-3. **Collapsible Thought Duration**: Displays *"Thought for X.X seconds"* with expandable execution history.
-4. **Modular Tool Architecture**: Pluggable tool executor designed to easily drop in custom tools for future projects.
-5. **File Attachments**: Built-in file upload and download endpoints.
-6. **No Database Required to Start**: Pure stateless session mode. Can easily plug in MongoDB / PostgreSQL whenever persistent chat history is needed.
+MIT License — Paul Corsino.

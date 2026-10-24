@@ -1,0 +1,1 @@
+"""Application agent prompt templates."""
