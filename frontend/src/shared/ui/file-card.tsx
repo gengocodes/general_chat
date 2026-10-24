@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { Download, X } from "lucide-react";
+import { Icon, IconifyIcon } from "@iconify/react";
+import pdfIcon from "@iconify-icons/vscode-icons/file-type-pdf2";
+import wordIcon from "@iconify-icons/vscode-icons/file-type-word";
+import { Download, File, X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import {
   FileKind,
@@ -19,37 +22,19 @@ interface FileTypeIconProps {
 }
 
 const SIZE_CLASSES: Record<NonNullable<FileTypeIconProps["size"]>, string> = {
-  sm: "size-8 rounded-lg",
-  md: "size-10 rounded-xl",
-  lg: "size-11 rounded-xl",
+  sm: "size-8",
+  md: "size-10",
+  lg: "size-11",
 };
 
-const KIND_STYLES: Record<
-  FileKind,
-  { bg: string; border: string; text: string; badgeBg: string }
-> = {
-  pdf: {
-    bg: "bg-red-500/10 dark:bg-red-500/15",
-    border: "border-red-500/25 dark:border-red-400/25",
-    text: "text-red-600 dark:text-red-400",
-    badgeBg: "bg-red-600 dark:bg-red-500 text-white",
-  },
-  docx: {
-    bg: "bg-blue-500/10 dark:bg-blue-500/15",
-    border: "border-blue-500/25 dark:border-blue-400/25",
-    text: "text-blue-600 dark:text-blue-400",
-    badgeBg: "bg-blue-600 dark:bg-blue-500 text-white",
-  },
-  generic: {
-    bg: "bg-muted",
-    border: "border-border",
-    text: "text-foreground",
-    badgeBg: "bg-foreground text-background",
-  },
+const KIND_ICONS: Record<Exclude<FileKind, "generic">, IconifyIcon> = {
+  pdf: pdfIcon,
+  docx: wordIcon,
 };
 
 /**
- * Vector document emblem with folded corner and color-coded format badge (PDF in red, DOCX in blue).
+ * File-type icon for PDF and Word documents (bundled offline vscode-icons set),
+ * falling back to a neutral file glyph for any other type.
  */
 export const FileTypeIcon: React.FC<FileTypeIconProps> = ({
   filename,
@@ -57,45 +42,19 @@ export const FileTypeIcon: React.FC<FileTypeIconProps> = ({
   className,
 }) => {
   const kind = getFileKind(filename);
-  const ext = getFileExtension(filename);
-  const style = KIND_STYLES[kind];
-  const badgeText =
-    kind === "pdf" ? "PDF" : kind === "docx" ? "DOC" : ext.slice(0, 4);
+  const classes = cn("shrink-0 select-none", SIZE_CLASSES[size], className);
 
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-center shrink-0 border select-none",
-        SIZE_CLASSES[size],
-        style.bg,
-        style.border,
-        style.text,
-        className,
-      )}
-      aria-hidden="true"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        className="size-4 opacity-85"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-      <span
-        className={cn(
-          "mt-0.5 px-1 py-[1px] rounded-[3px] text-[8px] font-bold tracking-wider leading-none uppercase",
-          style.badgeBg,
-        )}
-      >
-        {badgeText}
-      </span>
-    </div>
-  );
+  if (kind === "generic") {
+    return (
+      <File
+        className={cn(classes, "p-1 text-muted-foreground")}
+        strokeWidth={1.5}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  return <Icon icon={KIND_ICONS[kind]} className={classes} aria-hidden="true" />;
 };
 
 export interface FileAttachmentCardProps {
