@@ -42,7 +42,7 @@ flowchart TB
         LCAdapter["llm/langchain_adapter.py\nLangChainChatAdapter"]
         ToolExec["llm/tool_executor.py\nToolExecutor"]
         DocTools["llm/document_tools.py\ncreate_document_tools"]
-        LocalStore["storage/local_storage_adapter.py\nLocalStorageAdapter"]
+        BMStore["storage/bucket_manager_adapter.py\nBucketManagerStorageAdapter"]
         LocalDoc["document/document_service.py\nLocalDocumentService"]
     end
 
@@ -65,13 +65,14 @@ flowchart TB
     LCAdapter --> ToolExec
     Deps -.->|"binds tools"| DocTools
     DocTools --> DocPort
-    LocalStore -.->|"implements"| StoragePort
+    BMStore -.->|"implements"| StoragePort
     LocalDoc -.->|"implements"| DocPort
-    LocalStore --> Errors
+    LocalDoc --> StoragePort
+    BMStore --> Errors
     LocalDoc --> Errors
 ```
 
-### Runtime Request & SSE Streaming Flow
+### Runtime Request, SSE Streaming & Ephemeral Document Conversion Flow
 
 ```mermaid
 sequenceDiagram
@@ -82,6 +83,8 @@ sequenceDiagram
     participant Adapter as Infrastructure<br/>(LangChainChatAdapter)
     participant Exec as Infrastructure<br/>(ToolExecutor)
     participant Doc as Infrastructure<br/>(LocalDocumentService)
+    participant Store as Infrastructure<br/>(BucketManagerStorageAdapter)
+    participant BM as Bucket-Manager<br/>(Cloudflare R2 Service)
 
     Client->>Router: POST /api/chat/stream (ChatRequest DTO)
     Router->>Router: _to_domain_history() -> list[ChatMessage]
@@ -101,6 +104,13 @@ sequenceDiagram
             Adapter-->>Router: StreamActivityEvent ("started")
             Adapter->>Exec: execute(group.calls, messages)
             Exec->>Doc: convert_docx_to_pdf / convert_pdf_to_docx
+            Doc->>Store: fetch_file_bytes(object_key)
+            Store->>BM: GET /api/objects/{object_key}/content
+            BM-->>Store: Raw source file bytes
+            Doc->>Doc: Convert in ephemeral tempfile.TemporaryDirectory()
+            Doc->>Store: save_file(output_filename, converted_bytes)
+            Store->>BM: POST /api/objects/upload
+            BM-->>Store: StoredFile (with R2 presigned download_url)
             Doc-->>Exec: AgentToolResult[DocumentConvertResult]
             Exec-->>Adapter: list[ExecutedToolResult] (appends ToolMessage)
             Adapter-->>Router: StreamActivityEvent ("completed")
@@ -117,7 +127,7 @@ sequenceDiagram
 | :--- | :--- | :--- | :--- |
 | **Domain** | `app/domain/` | Python standard library (`dataclasses`, `typing`), `pydantic` (for discriminated stream events and tool result envelopes) | `fastapi`, `langchain`, `os.path`, HTTP status codes, URL paths, database drivers |
 | **Application** | `app/application/` | `app.domain.*`, Python standard library (`abc`, `collections.abc`, `typing`) | `app.infrastructure.*`, `app.presentation.*`, `os.path`, HTTP routes (`/api/...`), vendor SDKs |
-| **Infrastructure** | `app/infrastructure/` | `app.domain.*`, `app.application.ports.*`, third-party SDKs (`langchain_core`, `os`, `importlib`) | `app.presentation.*`, `fastapi.HTTPException` |
+| **Infrastructure** | `app/infrastructure/` | `app.domain.*`, `app.application.ports.*`, third-party SDKs (`langchain_core`, `httpx`, `tempfile`, `os`, `importlib`) | `app.presentation.*`, `fastapi.HTTPException` |
 | **Presentation** | `app/presentation/` | `app.domain.*`, `app.application.*`, `app.infrastructure.*` (in `dependencies.py` only), `fastapi`, `pydantic` | Embedding business rules or direct SDK calls inside route handlers |
 
 ---
@@ -128,7 +138,7 @@ sequenceDiagram
 
 Returning raw tuples like `tuple[str, str, int, str, str]` or `tuple[str, str]` across functions, ports, or use cases is a **Primitive Obsession** code smell:
 
-1. **Positional Fragility:** Callers unpack by position (`a, b, c = fn()`). Swapping two `str` values (e.g., `clean_filename` and `file_path`) silently introduces bugs that static type checkers cannot catch because both are `str`.
+1. **Positional Fragility:** Callers unpack by position (`a, b, c = fn()`). Swapping two `str` values (e.g., `filename` and `download_url`) silently introduces bugs that static type checkers cannot catch because both are `str`.
 2. **Zero Self-Documentation:** A signature like `-> tuple[str, str, str]` forces engineers to read the function body or docstring to know which element is the input path, output path, or filename.
 3. **Hard to Extend:** Adding a field breaks every unpacking call site across the codebase and test suite.
 
@@ -150,7 +160,7 @@ Use **named, structured classes** according to the layer's responsibility:
 # BAD: Positional primitive tuple return
 def save_file(self, filename: str, file_obj: BinaryIO) -> tuple[str, str, int]:
     ...
-    return clean_filename, target_path, size_bytes
+    return object_key, download_url, size_bytes
 
 # GOOD: Immutable Domain Value Object
 @dataclass(frozen=True)
@@ -158,15 +168,15 @@ class StoredFile:
     filename: str
     original_name: str
     size_bytes: int
-    file_path: str
+    download_url: str
 
 def save_file(self, filename: str, file_obj: BinaryIO) -> StoredFile:
     ...
     return StoredFile(
-        filename=clean_filename,
-        original_name=filename,
-        size_bytes=size_bytes,
-        file_path=target_path,
+        filename=data["object_key"],
+        original_name=data["original_name"],
+        size_bytes=data["size_bytes"],
+        download_url=data["download_url"],
     )
 ```
 
@@ -177,7 +187,7 @@ def save_file(self, filename: str, file_obj: BinaryIO) -> StoredFile:
 Never declare parameters or fields as `T | None = None` unless `None` represents a distinct, valid domain state:
 
 - **Collections:** Use `Sequence[T] = ()` for input parameters that may be empty (e.g., `history: Sequence[ChatMessage] = ()`, `attached_files: Sequence[str] = ()`). Do not use `list[T] | None = None`.
-- **Required Fields:** If every caller or event producer supplies a value (e.g., `StreamStatusEvent.message`), type it as `str`, not `str | None = None`.
+- **Required Fields:** If every caller or event producer supplies a value (e.g., `StreamActivityEvent.message`), type it as `str`, not `str | None = None`.
 - **Legitimate Optionals:** Use `T | None` only when absence has explicit domain semantics (e.g., `AgentToolResult.data: T | None = None` when `success=False`, or `_TurnStreamCollector.ai_message: AIMessage | None = None` before the stream finishes).
 
 ---
@@ -196,7 +206,7 @@ Keep functions short, single-purpose, and free of Pylint complexity suppressions
    - `_run_streaming_turns(...)` — bounded `MAX_TOOL_TURNS` loop orchestration
 3. **Deduplicate Shared Boilerplate:**
    - In `document_tools.py`, `_execute_conversion(...)` encapsulates the `try/except`, logging, and `AgentToolResult[DocumentConvertResult]` wrapping so each `@tool` definition is a single declarative call.
-   - In `document_service.py`, `_prepare_conversion_paths(...)` centralizes path sanitization, existence checks, and output path construction into a typed `ConversionPaths` dataclass.
+   - In `document_service.py`, `_stage_conversion_paths(...)` centralizes input byte fetching, ephemeral staging in `tempfile.TemporaryDirectory()`, and output path construction into a typed `ConversionPaths` dataclass.
 
 ---
 
@@ -277,8 +287,8 @@ Before submitting any backend change, run both commands from the repository root
 
 ```bash
 # 1. Run unit and integration tests
-python -m pytest backend/tests -v
+PYTHONPATH=backend backend/.venv/bin/python -m pytest backend/tests -v
 
 # 2. Run Pylint (must score 10.00/10 with zero complexity suppressions)
-python -m pylint backend/app backend/tests
+backend/.venv/bin/python -m pylint backend/app backend/tests
 ```

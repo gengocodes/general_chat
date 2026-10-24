@@ -10,24 +10,20 @@ from app.application.use_cases.file import (
     UploadFileUseCase,
     GetFileDownloadUseCase,
 )
-from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
-from app.infrastructure.document.document_service import LocalDocumentService
+from app.infrastructure.storage.bucket_manager_adapter import (
+    BucketManagerStorageAdapter,
+)
+from app.infrastructure.document.document_service import EphemeralDocumentService
 from app.infrastructure.llm.document_tools import create_document_tools
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 
-
-def build_file_download_url(filename: str) -> str:
-    """Build the presentation-layer HTTP download route for a stored filename."""
-    return f"/api/files/download/{filename}"
-
-
 # Singletons / reusable infrastructure instances
-_storage_adapter = LocalStorageAdapter()
-_document_service = LocalDocumentService()
-_document_tools = create_document_tools(
-    document_processor=_document_service,
-    build_download_url=build_file_download_url,
+_storage_adapter = BucketManagerStorageAdapter(
+    base_url=settings.BUCKET_MANAGER_URL,
+    internal_api_key=settings.INTERNAL_API_KEY,
 )
+_document_service = EphemeralDocumentService(storage=_storage_adapter)
+_document_tools = create_document_tools(document_processor=_document_service)
 
 
 def get_chat_model_adapter() -> LangChainChatAdapter:

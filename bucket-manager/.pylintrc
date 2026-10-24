@@ -1,0 +1,6 @@
+[MAIN]
+init-hook='import sys, os; sys.path.extend([os.path.abspath("bucket-manager"), os.path.abspath("."), os.path.abspath("app")])'
+source-roots=.,app,bucket-manager
+
+[FORMAT]
+max-line-length=100

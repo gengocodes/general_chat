@@ -6,7 +6,7 @@ from app.domain.entities.file import StoredFile, FileDownload
 
 
 class FileStoragePort(ABC):
-    """Port for file storage operations."""
+    """Port for file storage operations backed by the bucket-manager service."""
 
     @abstractmethod
     def save_file(self, filename: str, file_obj: BinaryIO) -> StoredFile:
@@ -18,6 +18,13 @@ class FileStoragePort(ABC):
     @abstractmethod
     def resolve_download(self, filename: str) -> FileDownload:
         """
-        Resolves a stored file for download.
+        Resolves a stored file into a FileDownload containing a presigned download URL.
+        Raises FileNotFoundDomainError if the file does not exist.
+        """
+
+    @abstractmethod
+    def fetch_file_bytes(self, filename: str) -> bytes:
+        """
+        Fetches the raw bytes of a stored file for processing.
         Raises FileNotFoundDomainError if the file does not exist.
         """

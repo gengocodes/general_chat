@@ -18,6 +18,16 @@ class Settings(BaseSettings):
         min_length=1,
         description="Allowed frontend origin(s) for CORS, comma-separated",
     )
+    BUCKET_MANAGER_URL: str = Field(
+        ...,
+        min_length=1,
+        description="Internal URL of the bucket-manager microservice",
+    )
+    INTERNAL_API_KEY: str = Field(
+        ...,
+        min_length=1,
+        description="Shared secret key for internal service-to-service authentication",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -28,9 +38,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         """Return parsed list of allowed CORS origins."""
+        origin_val = str(self.FRONTEND_ORIGIN)
         return [
             origin.strip()
-            for origin in self.FRONTEND_ORIGIN.split(",")
+            for origin in origin_val.split(",")
             if origin.strip()
         ]
 

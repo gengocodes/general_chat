@@ -10,7 +10,12 @@ const MarkdownLink: FC<AnchorHTMLAttributes<HTMLAnchorElement>> = ({
   children,
 }) => {
   const resolvedHref = href ? resolveBackendUrl(href) : undefined;
-  const isFileDownload = Boolean(href && href.startsWith("/api/files/download/"));
+  const isFileDownload = Boolean(
+    href &&
+      (href.startsWith("/api/files/download/") ||
+        href.includes("r2.cloudflarestorage.com") ||
+        href.includes("X-Amz-Signature=")),
+  );
 
   return (
     <a

@@ -1,10 +1,11 @@
-"""Unit and use case tests for GenChat agent and storage operations."""
+"""Unit and use case tests for GenChat agent and bucket-manager storage operations."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import io
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 
+from app.domain.entities.file import extract_original_base_name
 from app.domain.entities.message import ChatMessage
 from app.domain.errors import (
     FileNotFoundDomainError,
@@ -18,7 +19,9 @@ from app.domain.events import (
 )
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 from app.infrastructure.llm.tool_executor import ToolExecutor
-from app.infrastructure.storage.local_storage_adapter import LocalStorageAdapter
+from app.infrastructure.storage.bucket_manager_adapter import (
+    BucketManagerStorageAdapter,
+)
 from app.application.use_cases.chat import (
     StreamChatMessageUseCase,
     prepare_conversation_history,
@@ -63,7 +66,7 @@ async def test_agent_stream_chat_basic_flow():
         event async for event in use_case.execute(
             user_message="Hi, what can you do?",
             history=[ChatMessage(role="user", content="prior context")],
-            attached_files=["report.pdf"],
+            attached_files=["a1b2c3d4e5f6_report.pdf"],
         )
     ]
 
@@ -109,32 +112,67 @@ async def test_tool_executor_handles_unknown_tool():
     assert messages[0].tool_call_id == "call-1"
 
 
-def test_file_storage_and_use_cases(tmp_path):
-    """Verify file upload, size limit enforcement, and download use cases with local storage."""
-    storage = LocalStorageAdapter(upload_dir=str(tmp_path), max_upload_bytes=100)
+def test_bucket_manager_storage_adapter_and_use_cases():
+    """Verify file upload, size limit enforcement, and download resolution via bucket-manager."""
+    storage = BucketManagerStorageAdapter(
+        base_url="http://bucket-manager.test:8001",
+        internal_api_key="test-internal-api-key",
+        max_upload_bytes=100,
+    )
     upload_use_case = UploadFileUseCase(storage=storage)
     download_use_case = GetFileDownloadUseCase(storage=storage)
 
     file_bytes = b"Hello world text content"
-    file_obj = io.BytesIO(file_bytes)
 
-    stored = upload_use_case.execute(
-        original_name="test_doc.txt", file_obj=file_obj
+    mock_upload_res = MagicMock(
+        status_code=200,
+        is_success=True,
     )
+    mock_upload_res.json.return_value = {
+        "object_key": "a1b2c3d4e5f6_test_doc.txt",
+        "original_name": "test_doc.txt",
+        "size_bytes": len(file_bytes),
+        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.txt?sig=1",
+    }
 
-    assert stored.filename == "test_doc.txt"
+    with patch("httpx.post", return_value=mock_upload_res):
+        stored = upload_use_case.execute(
+            original_name="test_doc.txt", file_obj=io.BytesIO(file_bytes)
+        )
+
+    assert stored.filename == "a1b2c3d4e5f6_test_doc.txt"
     assert stored.original_name == "test_doc.txt"
     assert stored.size_bytes == len(file_bytes)
+    assert stored.download_url.startswith("https://r2.example.com/")
 
-    download = download_use_case.execute("test_doc.txt")
-    assert download.filename == "test_doc.txt"
-    assert download.file_path == stored.file_path
+    mock_presign_res = MagicMock(status_code=200, is_success=True)
+    mock_presign_res.json.return_value = {
+        "object_key": "a1b2c3d4e5f6_test_doc.txt",
+        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.txt?sig=2",
+        "expires_in_seconds": 900,
+    }
 
-    with pytest.raises(FileNotFoundDomainError):
-        download_use_case.execute("non_existent_file.pdf")
+    with patch("httpx.get", return_value=mock_presign_res):
+        download = download_use_case.execute("a1b2c3d4e5f6_test_doc.txt")
+
+    assert download.filename == "a1b2c3d4e5f6_test_doc.txt"
+    assert download.download_url.endswith("sig=2")
+
+    mock_404_res = MagicMock(status_code=404, is_success=False)
+    with patch("httpx.get", return_value=mock_404_res):
+        with pytest.raises(FileNotFoundDomainError):
+            download_use_case.execute("non_existent_file.pdf")
 
     with pytest.raises(InvalidFileError):
         upload_use_case.execute("   ", io.BytesIO(b"data"))
 
     with pytest.raises(FileSizeLimitExceededError):
         upload_use_case.execute("oversized.bin", io.BytesIO(b"x" * 101))
+
+
+def test_extract_original_base_name_helper():
+    """Verify UUID prefix stripping and filename extension preservation."""
+    assert extract_original_base_name("a1b2c3d4e5f6_report.docx") == "report"
+    assert extract_original_base_name("1234567890ab_monthly_summary.pdf") == "monthly_summary"
+    assert extract_original_base_name("report.docx") == "report"
+    assert extract_original_base_name("notuuid_report.docx") == "notuuid_report"

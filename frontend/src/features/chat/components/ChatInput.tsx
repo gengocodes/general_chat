@@ -90,23 +90,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       {attachedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-1">
-          {attachedFiles.map((file) => (
-            <div
-              key={file}
-              className="inline-flex items-center gap-1.5 text-xs bg-muted/80 border border-border px-2.5 py-1 rounded-full text-foreground"
-            >
-              <FileText className="size-3.5 text-primary" />
-              <span className="font-medium max-w-[200px] truncate">{file}</span>
-              <button
-                type="button"
-                onClick={() => onRemoveFile(file)}
-                className="text-muted-foreground hover:text-foreground ml-1"
+        <div className="flex flex-col gap-1.5 px-1">
+          <div className="flex flex-wrap gap-2">
+            {attachedFiles.map((file) => (
+              <div
+                key={file}
+                className="inline-flex items-center gap-1.5 text-xs bg-muted/80 border border-border px-2.5 py-1 rounded-full text-foreground"
               >
-                <X className="size-3" />
-              </button>
-            </div>
-          ))}
+                <FileText className="size-3.5 text-primary" />
+                <span className="font-medium max-w-[200px] truncate">{file}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemoveFile(file)}
+                  className="text-muted-foreground hover:text-foreground ml-1"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xxs text-muted-foreground/70 px-1">
+            Uploaded and converted files are automatically removed after 24 hours.
+          </p>
         </div>
       )}
 
@@ -166,7 +171,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       </div>
 
       <p className="text-center text-xs text-muted-foreground/60 select-none px-2">
-        GenChat can make mistakes. Verify important information.
+        GenChat can make mistakes. Uploaded files are automatically deleted after 24 hours.
       </p>
     </div>
   );

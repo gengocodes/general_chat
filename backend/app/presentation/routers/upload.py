@@ -4,7 +4,7 @@ File upload and download endpoints for GenChat
 
 import logging
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 
 from app.domain.errors import (
     FileNotFoundDomainError,
@@ -17,7 +17,6 @@ from app.application.use_cases.file import (
 )
 from app.presentation.schemas.file import FileUploadResponse
 from app.presentation.dependencies import (
-    build_file_download_url,
     get_upload_file_use_case,
     get_file_download_use_case,
 )
@@ -32,14 +31,14 @@ async def upload_file(
     file: UploadFile = File(...),
     use_case: UploadFileUseCase = Depends(get_upload_file_use_case),
 ) -> FileUploadResponse:
-    """Upload a file to the server for processing."""
+    """Upload a file to Cloudflare R2 via bucket-manager for processing."""
     try:
         stored = use_case.execute(file.filename or "", file.file)
         return FileUploadResponse(
             filename=stored.filename,
             original_name=stored.original_name,
             size_bytes=stored.size_bytes,
-            download_url=build_file_download_url(stored.filename),
+            download_url=stored.download_url,
         )
     except InvalidFileError as exc:
         raise HTTPException(
@@ -63,8 +62,8 @@ async def upload_file(
 async def download_file(
     filename: str,
     use_case: GetFileDownloadUseCase = Depends(get_file_download_use_case),
-) -> FileResponse:
-    """Download a file from the uploads directory."""
+) -> RedirectResponse:
+    """Resolve a fresh presigned R2 URL and redirect the client to download the file."""
     try:
         download = use_case.execute(filename)
     except (FileNotFoundDomainError, InvalidFileError) as exc:
@@ -73,8 +72,7 @@ async def download_file(
             detail="Requested file not found.",
         ) from exc
 
-    return FileResponse(
-        path=download.file_path,
-        filename=download.filename,
-        media_type="application/octet-stream",
+    return RedirectResponse(
+        url=download.download_url,
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
