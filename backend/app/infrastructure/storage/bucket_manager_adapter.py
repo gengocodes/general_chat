@@ -121,22 +121,3 @@ class BucketManagerStorageAdapter(FileStoragePort):
             filename=data["object_key"],
             download_url=data["download_url"],
         )
-
-    def fetch_file_bytes(self, filename: str) -> bytes:
-        clean_filename = sanitize_filename(filename)
-        try:
-            response = httpx.get(
-                f"{self._base_url}/api/objects/{clean_filename}/content",
-                headers=self._headers,
-                timeout=self._timeout,
-            )
-        except httpx.HTTPError as exc:
-            logger.exception("Bucket-manager content fetch failed: %s", str(exc))
-            raise DomainError("Could not communicate with storage service.") from exc
-
-        if response.status_code == 404:
-            raise FileNotFoundDomainError(f"File '{clean_filename}' does not exist.")
-        if not response.is_success:
-            raise DomainError("Storage service failed to fetch file content.")
-
-        return response.content

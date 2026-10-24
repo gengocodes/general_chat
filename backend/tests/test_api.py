@@ -44,11 +44,6 @@ class _DummyStorageAdapter(FileStoragePort):
             download_url=f"https://r2.example.com/{filename}?sig=xyz",
         )
 
-    def fetch_file_bytes(self, filename: str) -> bytes:
-        if filename not in self._store:
-            raise FileNotFoundDomainError(f"File '{filename}' does not exist.")
-        return self._store[filename]
-
 
 def test_health_check():
     """Verify health endpoint returns status ok and app name."""

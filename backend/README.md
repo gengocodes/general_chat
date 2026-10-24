@@ -43,7 +43,7 @@ flowchart TB
         ToolExec["llm/tool_executor.py\nToolExecutor"]
         DocTools["llm/document_tools.py\ncreate_document_tools"]
         BMStore["storage/bucket_manager_adapter.py\nBucketManagerStorageAdapter"]
-        LocalDoc["document/document_service.py\nLocalDocumentService"]
+        DPAdapter["document/document_processor_adapter.py\nDocumentProcessorHttpAdapter"]
     end
 
     ChatRouter --> Schemas
@@ -66,13 +66,12 @@ flowchart TB
     Deps -.->|"binds tools"| DocTools
     DocTools --> DocPort
     BMStore -.->|"implements"| StoragePort
-    LocalDoc -.->|"implements"| DocPort
-    LocalDoc --> StoragePort
+    DPAdapter -.->|"implements"| DocPort
     BMStore --> Errors
-    LocalDoc --> Errors
+    DPAdapter --> Errors
 ```
 
-### Runtime Request, SSE Streaming & Ephemeral Document Conversion Flow
+### Runtime Request, SSE Streaming & Document Conversion Flow
 
 ```mermaid
 sequenceDiagram
@@ -82,8 +81,8 @@ sequenceDiagram
     participant UC as Application<br/>(StreamChatMessageUseCase)
     participant Adapter as Infrastructure<br/>(LangChainChatAdapter)
     participant Exec as Infrastructure<br/>(ToolExecutor)
-    participant Doc as Infrastructure<br/>(LocalDocumentService)
-    participant Store as Infrastructure<br/>(BucketManagerStorageAdapter)
+    participant DPAdapter as Infrastructure<br/>(DocumentProcessorHttpAdapter)
+    participant DP as Document-Processor<br/>(Conversion Service)
     participant BM as Bucket-Manager<br/>(Cloudflare R2 Service)
 
     Client->>Router: POST /api/chat/stream (ChatRequest DTO)
@@ -103,15 +102,15 @@ sequenceDiagram
             Adapter->>Adapter: _group_tool_calls() -> list[ToolCallGroup]
             Adapter-->>Router: StreamActivityEvent ("started")
             Adapter->>Exec: execute(group.calls, messages)
-            Exec->>Doc: convert_docx_to_pdf / convert_pdf_to_docx
-            Doc->>Store: fetch_file_bytes(object_key)
-            Store->>BM: GET /api/objects/{object_key}/content
-            BM-->>Store: Raw source file bytes
-            Doc->>Doc: Convert in ephemeral tempfile.TemporaryDirectory()
-            Doc->>Store: save_file(output_filename, converted_bytes)
-            Store->>BM: POST /api/objects/upload
-            BM-->>Store: StoredFile (with R2 presigned download_url)
-            Doc-->>Exec: AgentToolResult[DocumentConvertResult]
+            Exec->>DPAdapter: convert_docx_to_pdf / convert_pdf_to_docx
+            DPAdapter->>DP: POST /api/documents/convert (X-Internal-API-Key)
+            DP->>BM: GET /api/objects/{object_key}/content
+            BM-->>DP: Raw source file bytes
+            DP->>DP: Convert in ephemeral tempfile.TemporaryDirectory()
+            DP->>BM: POST /api/objects/upload
+            BM-->>DP: StoredObject (with R2 presigned download_url)
+            DP-->>DPAdapter: DocumentConvertResponse
+            DPAdapter-->>Exec: StoredFile
             Exec-->>Adapter: list[ExecutedToolResult] (appends ToolMessage)
             Adapter-->>Router: StreamActivityEvent ("completed")
         end

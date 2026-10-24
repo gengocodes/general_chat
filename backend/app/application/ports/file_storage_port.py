@@ -21,10 +21,3 @@ class FileStoragePort(ABC):
         Resolves a stored file into a FileDownload containing a presigned download URL.
         Raises FileNotFoundDomainError if the file does not exist.
         """
-
-    @abstractmethod
-    def fetch_file_bytes(self, filename: str) -> bytes:
-        """
-        Fetches the raw bytes of a stored file for processing.
-        Raises FileNotFoundDomainError if the file does not exist.
-        """

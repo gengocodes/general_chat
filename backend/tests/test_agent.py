@@ -1,11 +1,10 @@
-"""Unit and use case tests for GenChat agent and bucket-manager storage operations."""
+"""Unit and use case tests for GenChat agent and microservice adapters."""
 
 from unittest.mock import MagicMock, patch
 import io
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 
-from app.domain.entities.file import extract_original_base_name
 from app.domain.entities.message import ChatMessage
 from app.domain.errors import (
     FileNotFoundDomainError,
@@ -16,6 +15,9 @@ from app.domain.events import (
     StreamActivityEvent,
     StreamTokenEvent,
     StreamCompleteEvent,
+)
+from app.infrastructure.document.document_processor_adapter import (
+    DocumentProcessorHttpAdapter,
 )
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 from app.infrastructure.llm.tool_executor import ToolExecutor
@@ -170,9 +172,26 @@ def test_bucket_manager_storage_adapter_and_use_cases():
         upload_use_case.execute("oversized.bin", io.BytesIO(b"x" * 101))
 
 
-def test_extract_original_base_name_helper():
-    """Verify UUID prefix stripping and filename extension preservation."""
-    assert extract_original_base_name("a1b2c3d4e5f6_report.docx") == "report"
-    assert extract_original_base_name("1234567890ab_monthly_summary.pdf") == "monthly_summary"
-    assert extract_original_base_name("report.docx") == "report"
-    assert extract_original_base_name("notuuid_report.docx") == "notuuid_report"
+def test_document_processor_http_adapter():
+    """Verify DocumentProcessorHttpAdapter delegates conversions over HTTP."""
+    adapter = DocumentProcessorHttpAdapter(
+        base_url="http://document-processor.test:8002",
+        internal_api_key="test-internal-api-key",
+    )
+    mock_res = MagicMock(status_code=200, is_success=True)
+    mock_res.json.return_value = {
+        "original_filename": "a1b2c3d4e5f6_report.docx",
+        "converted_filename": "f9e8d7c6b5a4_report.pdf",
+        "original_name": "report.pdf",
+        "size_bytes": 2048,
+        "output_format": "pdf",
+        "download_url": "https://r2.example.com/f9e8d7c6b5a4_report.pdf?sig=1",
+    }
+
+    with patch("httpx.post", return_value=mock_res):
+        stored = adapter.convert_docx_to_pdf("a1b2c3d4e5f6_report.docx")
+
+    assert stored.filename == "f9e8d7c6b5a4_report.pdf"
+    assert stored.original_name == "report.pdf"
+    assert stored.size_bytes == 2048
+    assert stored.download_url.startswith("https://r2.example.com/")

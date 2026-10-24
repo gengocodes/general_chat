@@ -13,7 +13,9 @@ from app.application.use_cases.file import (
 from app.infrastructure.storage.bucket_manager_adapter import (
     BucketManagerStorageAdapter,
 )
-from app.infrastructure.document.document_service import EphemeralDocumentService
+from app.infrastructure.document.document_processor_adapter import (
+    DocumentProcessorHttpAdapter,
+)
 from app.infrastructure.llm.document_tools import create_document_tools
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 
@@ -22,8 +24,11 @@ _storage_adapter = BucketManagerStorageAdapter(
     base_url=settings.BUCKET_MANAGER_URL,
     internal_api_key=settings.INTERNAL_API_KEY,
 )
-_document_service = EphemeralDocumentService(storage=_storage_adapter)
-_document_tools = create_document_tools(document_processor=_document_service)
+_document_processor = DocumentProcessorHttpAdapter(
+    base_url=settings.DOCUMENT_PROCESSOR_URL,
+    internal_api_key=settings.INTERNAL_API_KEY,
+)
+_document_tools = create_document_tools(document_processor=_document_processor)
 
 
 def get_chat_model_adapter() -> LangChainChatAdapter:

@@ -7,10 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies (curl for healthcheck, libreoffice-writer for headless DOCX->PDF)
+# Install curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libreoffice-writer \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies

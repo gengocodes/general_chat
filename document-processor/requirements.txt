@@ -1,0 +1,17 @@
+# API Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# Environment Configuration
+pydantic-settings>=2.4.0
+
+# HTTP Client
+httpx>=0.27.0
+
+# Document Conversion Engines
+docx2pdf>=0.1.8
+pdf2docx>=0.5.8
+
+# Testing & Development
+pytest>=8.0.0
+anyio>=4.0.0

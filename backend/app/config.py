@@ -23,6 +23,11 @@ class Settings(BaseSettings):
         min_length=1,
         description="Internal URL of the bucket-manager microservice",
     )
+    DOCUMENT_PROCESSOR_URL: str = Field(
+        ...,
+        min_length=1,
+        description="Internal URL of the document-processor microservice",
+    )
     INTERNAL_API_KEY: str = Field(
         ...,
         min_length=1,

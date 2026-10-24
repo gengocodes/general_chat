@@ -1,0 +1,6 @@
+[MAIN]
+init-hook='import sys, os; sys.path.extend([os.path.abspath("document-processor"), os.path.abspath("."), os.path.abspath("app")])'
+source-roots=.,app,document-processor
+
+[FORMAT]
+max-line-length=100

@@ -10,6 +10,22 @@ services:
       - ./bucket-manager/.env
     restart: unless-stopped
 
+  document-processor:
+    build:
+      context: ./document-processor
+      dockerfile: Dockerfile
+    container_name: genchat-document-processor
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./document-processor/.env
+    environment:
+      - BUCKET_MANAGER_URL=${BUCKET_MANAGER_URL:-http://bucket-manager:8001}
+    depends_on:
+      bucket-manager:
+        condition: service_healthy
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -22,7 +38,10 @@ services:
     environment:
       - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:3000}
       - BUCKET_MANAGER_URL=${BUCKET_MANAGER_URL:-http://bucket-manager:8001}
+      - DOCUMENT_PROCESSOR_URL=${DOCUMENT_PROCESSOR_URL:-http://document-processor:8002}
     depends_on:
       bucket-manager:
+        condition: service_healthy
+      document-processor:
         condition: service_healthy
     restart: unless-stopped
