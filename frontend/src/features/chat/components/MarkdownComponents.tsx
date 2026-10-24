@@ -1,23 +1,34 @@
 "use client";
 
 import { AnchorHTMLAttributes, FC, HTMLAttributes } from "react";
-import { ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ExternalLink, Download } from "lucide-react";
+import { resolveBackendUrl } from "@/shared/api/stream";
+import { cn } from "@/shared/lib/utils";
 
 const MarkdownLink: FC<AnchorHTMLAttributes<HTMLAnchorElement>> = ({
   href,
   children,
-}) => (
-  <a
-    href={href}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-primary font-medium hover:underline inline-flex items-center gap-0.5 cursor-pointer underline-offset-2"
-  >
-    {children}
-    <ExternalLink className="size-3 inline shrink-0" />
-  </a>
-);
+}) => {
+  const resolvedHref = href ? resolveBackendUrl(href) : undefined;
+  const isFileDownload = Boolean(href && href.startsWith("/api/files/download/"));
+
+  return (
+    <a
+      href={resolvedHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={isFileDownload || undefined}
+      className="text-primary font-medium hover:underline inline-flex items-center gap-1 cursor-pointer underline-offset-2"
+    >
+      {children}
+      {isFileDownload ? (
+        <Download className="size-3 inline shrink-0" />
+      ) : (
+        <ExternalLink className="size-3 inline shrink-0" />
+      )}
+    </a>
+  );
+};
 
 export const MARKDOWN_COMPONENTS = {
   a: MarkdownLink,

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { Sparkles } from "lucide-react";
 import { useChat } from "../hooks/useChat";
+import { DEFAULT_PROMPTS } from "../constants/chat.constants";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
-import { Sparkles } from "lucide-react";
 
 export const ChatWindow: React.FC = () => {
   const {
@@ -19,19 +20,9 @@ export const ChatWindow: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
-
-  const defaultPrompts = [
-    "Brainstorm innovative ideas for a full-stack AI app",
-    "Explain clean architecture patterns in modern development",
-    "How can you assist me with my projects today?",
-  ];
 
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
@@ -40,8 +31,7 @@ export const ChatWindow: React.FC = () => {
           {messages.map((msg) => {
             const hasData =
               Boolean(msg.content) ||
-              Boolean(msg.activities && msg.activities.length > 0) ||
-              Boolean(msg.tools && msg.tools.length > 0);
+              Boolean(msg.activities && msg.activities.length > 0);
 
             return msg.role === "assistant" && !hasData ? null : (
               <ChatMessage key={msg.id} message={msg} />
@@ -55,18 +45,16 @@ export const ChatWindow: React.FC = () => {
               </div>
 
               <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15] max-w-2xl">
-                Chat with{" "}
-                <span className="text-primary">
-                  GenChat
-                </span>
+                Chat with <span className="text-primary">GenChat</span>
               </h1>
 
               <p className="text-xs sm:text-base text-muted-foreground mt-2 sm:mt-3.5 max-w-lg leading-relaxed font-normal">
-                Paul Corsino&apos;s intelligent AI assistant. Ask questions, brainstorm ideas, analyze data, or build next-gen solutions.
+                Paul Corsino&apos;s intelligent AI assistant. Ask questions,
+                brainstorm ideas, analyze data, or build next-gen solutions.
               </p>
 
               <div className="flex flex-wrap gap-2 justify-center mt-6 max-w-xl">
-                {defaultPrompts.map((p) => (
+                {DEFAULT_PROMPTS.map((p) => (
                   <button
                     key={p}
                     type="button"

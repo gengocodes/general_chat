@@ -1,30 +1,36 @@
 "use client";
 
-import React, { useState, KeyboardEvent, useRef, useEffect, ChangeEvent } from "react";
+import React, {
+  useState,
+  KeyboardEvent,
+  useRef,
+  useEffect,
+  ChangeEvent,
+} from "react";
 import { ArrowUp, Square, Paperclip, X, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
+import { chatService } from "../services/chat.service";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
-  onCancel?: () => void;
-  isSending?: boolean;
-  disabled?: boolean;
-  attachedFiles?: string[];
-  onAddFile?: (filename: string) => void;
-  onRemoveFile?: (filename: string) => void;
+  onCancel: () => void;
+  isSending: boolean;
+  attachedFiles: string[];
+  onAddFile: (filename: string) => void;
+  onRemoveFile: (filename: string) => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   onCancel,
   isSending,
-  disabled,
-  attachedFiles = [],
+  attachedFiles,
   onAddFile,
   onRemoveFile,
 }) => {
   const [input, setInput] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,23 +49,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+    setUploadError(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${baseUrl}/api/files/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      if (onAddFile) {
-        onAddFile(data.filename);
-      }
-    } catch (err) {
-      console.error("Error uploading file:", err);
+      const data = await chatService.uploadFile(file);
+      onAddFile(data.filename);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload file.";
+      setUploadError(message);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -69,7 +67,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleSend = () => {
-    if ((!input.trim() && attachedFiles.length === 0) || disabled || isSending) return;
+    if ((!input.trim() && attachedFiles.length === 0) || isSending) return;
+    setUploadError(null);
     onSend(input || "Analyze attached file.");
     setInput("");
     if (textareaRef.current) {
@@ -86,6 +85,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="w-full flex flex-col gap-2">
+      {uploadError && (
+        <p className="text-xs text-destructive px-2">{uploadError}</p>
+      )}
+
       {attachedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 px-1">
           {attachedFiles.map((file) => (
@@ -95,15 +98,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             >
               <FileText className="size-3.5 text-primary" />
               <span className="font-medium max-w-[200px] truncate">{file}</span>
-              {onRemoveFile && (
-                <button
-                  type="button"
-                  onClick={() => onRemoveFile(file)}
-                  className="text-muted-foreground hover:text-foreground ml-1"
-                >
-                  <X className="size-3" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => onRemoveFile(file)}
+                className="text-muted-foreground hover:text-foreground ml-1"
+              >
+                <X className="size-3" />
+              </button>
             </div>
           ))}
         </div>
@@ -122,7 +123,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           size="icon"
           variant="ghost"
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isSending || isUploading}
+          disabled={isSending || isUploading}
           title="Attach file"
           className="rounded-full shrink-0 h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-foreground transition-all cursor-pointer mb-0.5"
         >
@@ -135,7 +136,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask GenChat anything..."
-          disabled={disabled}
           rows={1}
           className="flex-1 min-h-10 max-h-40 resize-none border-0 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 text-base md:text-sm px-2 md:px-3 py-2 bg-transparent text-foreground placeholder:text-muted-foreground/60 leading-relaxed"
         />
@@ -154,7 +154,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={(!input.trim() && attachedFiles.length === 0) || disabled || isUploading}
+            disabled={
+              (!input.trim() && attachedFiles.length === 0) || isUploading
+            }
             title="Send message"
             className="rounded-full shrink-0 h-8 w-8 md:h-9 md:w-9 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 disabled:bg-muted disabled:text-muted-foreground transition-all cursor-pointer mb-0.5"
           >

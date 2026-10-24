@@ -1,9 +1,5 @@
 import { create } from "zustand";
-import {
-  AgentActivity,
-  AgentToolCall,
-  ChatMessageItem,
-} from "../types/chat.types";
+import { AgentActivity, ChatMessageItem } from "../types/chat.types";
 
 interface ChatState {
   messages: ChatMessageItem[];
@@ -11,14 +7,8 @@ interface ChatState {
   addMessage: (msg: ChatMessageItem) => void;
   appendMessageContent: (id: string, chunk: string) => void;
   updateMessageActivity: (msgId: string, activity: AgentActivity) => void;
-  updateMessageToolCall: (
-    msgId: string,
-    toolName: string,
-    status: "started" | "completed",
-  ) => void;
   setExecutionTime: (msgId: string, durationSeconds: number) => void;
   finalizeMessageActivities: (msgId: string) => void;
-  resetMessages: () => void;
   addAttachedFile: (filename: string) => void;
   removeAttachedFile: (filename: string) => void;
   clearAttachedFiles: () => void;
@@ -61,36 +51,6 @@ export const useChatStore = create<ChatState>((set) => ({
       }),
     })),
 
-  updateMessageToolCall: (
-    msgId: string,
-    toolName: string,
-    status: "started" | "completed",
-  ) =>
-    set((state) => ({
-      messages: state.messages.map((msg) => {
-        if (msg.id !== msgId) return msg;
-        const currentTools = msg.tools || [];
-        const existsIndex = currentTools.findIndex((t) => t.name === toolName);
-        let updatedTools: AgentToolCall[];
-
-        const toolCall: AgentToolCall = {
-          id: `tool-${toolName}`,
-          name: toolName,
-          label: toolName.replace(/_/g, " "),
-          status,
-        };
-
-        if (existsIndex >= 0) {
-          updatedTools = [...currentTools];
-          updatedTools[existsIndex] = toolCall;
-        } else {
-          updatedTools = [...currentTools, toolCall];
-        }
-
-        return { ...msg, tools: updatedTools };
-      }),
-    })),
-
   setExecutionTime: (msgId: string, durationSeconds: number) =>
     set((state) => ({
       messages: state.messages.map((msg) =>
@@ -107,23 +67,13 @@ export const useChatStore = create<ChatState>((set) => ({
         const completedActivities = (msg.activities || []).filter(
           (a) => a.status === "completed",
         );
-        const completedTools = (msg.tools || []).filter(
-          (t) => t.status === "completed",
-        );
         return {
           ...msg,
           activities:
             completedActivities.length > 0 ? completedActivities : undefined,
-          tools: completedTools.length > 0 ? completedTools : undefined,
         };
       }),
     })),
-
-  resetMessages: () =>
-    set({
-      messages: [],
-      attachedFiles: [],
-    }),
 
   addAttachedFile: (filename: string) =>
     set((state) => ({

@@ -12,7 +12,6 @@ from app.domain.errors import (
     InvalidFileError,
 )
 from app.domain.events import (
-    StreamStatusEvent,
     StreamActivityEvent,
     StreamTokenEvent,
     StreamCompleteEvent,
@@ -69,7 +68,6 @@ async def test_agent_stream_chat_basic_flow():
     ]
 
     event_types = [type(e) for e in emitted_events]
-    assert StreamStatusEvent in event_types
     assert StreamActivityEvent in event_types
     assert StreamTokenEvent in event_types
     assert StreamCompleteEvent in event_types

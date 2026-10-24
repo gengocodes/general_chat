@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { ChatMessageItem } from "../types/chat.types";
 import { AgentAvatar } from "./AgentAvatar";
 import { UserAvatar } from "./UserAvatar";
@@ -34,9 +34,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       )}
     >
       {isUser ? (
-        <UserAvatar size="md" className="mt-0.5" />
+        <UserAvatar className="mt-0.5" />
       ) : (
-        <AgentAvatar size="md" className="mt-0.5" />
+        <AgentAvatar className="mt-0.5" />
       )}
 
       <div

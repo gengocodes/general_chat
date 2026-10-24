@@ -3,7 +3,6 @@
 from typing import Annotated, Literal, Union
 from pydantic import BaseModel, Field
 
-StreamStatus = Literal["analyzing", "executing_tools"]
 ActivityStatus = Literal["started", "completed"]
 
 
@@ -14,28 +13,6 @@ class StreamActivityEvent(BaseModel):
     id: str
     message: str
     status: ActivityStatus
-
-
-class StreamStatusEvent(BaseModel):
-    """Event emitted when agent status changes"""
-
-    type: Literal["status"] = "status"
-    status: StreamStatus
-    message: str
-
-
-class StreamToolStartEvent(BaseModel):
-    """Event emitted before executing a tool"""
-
-    type: Literal["tool_start"] = "tool_start"
-    tool_name: str
-
-
-class StreamToolEndEvent(BaseModel):
-    """Event emitted after executing a tool"""
-
-    type: Literal["tool_end"] = "tool_end"
-    tool_name: str
 
 
 class StreamTokenEvent(BaseModel):
@@ -60,10 +37,7 @@ class StreamCompleteEvent(BaseModel):
 
 AgentStreamEvent = Annotated[
     Union[
-        StreamStatusEvent,
         StreamActivityEvent,
-        StreamToolStartEvent,
-        StreamToolEndEvent,
         StreamTokenEvent,
         StreamErrorEvent,
         StreamCompleteEvent,

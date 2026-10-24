@@ -24,10 +24,7 @@ from app.domain.events import (
     StreamActivityEvent,
     StreamCompleteEvent,
     StreamErrorEvent,
-    StreamStatusEvent,
     StreamTokenEvent,
-    StreamToolEndEvent,
-    StreamToolStartEvent,
 )
 from app.application.ports.chat_model_port import ChatModelPort
 from app.infrastructure.llm.tool_executor import ToolExecutor
@@ -171,7 +168,7 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
         tool_executor: ToolExecutor,
         messages: list[BaseMessage],
     ) -> AsyncGenerator[AgentStreamEvent, None]:
-        """Execute a group of tool calls and yield corresponding activity and tool events."""
+        """Execute a group of tool calls and yield corresponding activity lifecycle events."""
         activity_id = self._get_activity_id(group.tool_name, turn)
         human_name = self._format_tool_title(group.tool_name)
 
@@ -181,13 +178,7 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
             status="started",
         )
 
-        for tc in group.calls:
-            yield StreamToolStartEvent(tool_name=tc["name"])
-
         await tool_executor.execute(group.calls, messages)
-
-        for tc in group.calls:
-            yield StreamToolEndEvent(tool_name=tc["name"])
 
         yield StreamActivityEvent(
             id=activity_id,
@@ -220,10 +211,6 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
                 has_finished_text_turn = True
                 break
 
-            yield StreamStatusEvent(
-                status="executing_tools",
-                message="Executing requested action...",
-            )
             ctx.messages.append(current_ai_message)
 
             for group in self._group_tool_calls(current_ai_message.tool_calls):
@@ -245,9 +232,6 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
         history: Sequence[ChatMessage] = (),
     ) -> AsyncGenerator[AgentStreamEvent, None]:
         try:
-            yield StreamStatusEvent(
-                status="analyzing", message="Analyzing your request..."
-            )
             yield StreamActivityEvent(
                 id="act-understanding",
                 message="Understanding your request",

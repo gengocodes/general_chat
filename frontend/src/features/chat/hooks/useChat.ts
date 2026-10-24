@@ -16,18 +16,14 @@ export const useChat = () => {
     addMessage,
     appendMessageContent,
     updateMessageActivity,
-    updateMessageToolCall,
     setExecutionTime,
     finalizeMessageActivities,
-    resetMessages,
     addAttachedFile,
     removeAttachedFile,
     clearAttachedFiles,
   } = useChatStore();
 
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const cancelStream = useCallback(() => {
@@ -56,16 +52,13 @@ export const useChat = () => {
     abortControllerRef.current = controller;
 
     const startTime = Date.now();
-
-    setError(null);
     setIsSending(true);
 
     const historyPayload: ChatHistoryMessage[] = messages
-      .filter((msg) => msg.content && msg.content.trim() !== "")
-      .slice(-10)
+      .filter((msg) => msg.content.trim().length > 0)
       .map((msg) => ({
         role: msg.role,
-        content: msg.content.trim(),
+        content: msg.content,
       }));
 
     const currentFiles = [...attachedFiles];
@@ -99,14 +92,11 @@ export const useChat = () => {
       setExecutionTime(assistantMsgId, durationSeconds);
       finalizeMessageActivities(assistantMsgId);
 
-      if (errText) {
-        setError(new Error(errText));
-        if (!hasReceivedTokens) {
-          appendMessageContent(
-            assistantMsgId,
-            "Sorry, I encountered an error generating a response. Please try again.",
-          );
-        }
+      if (errText && !hasReceivedTokens) {
+        appendMessageContent(
+          assistantMsgId,
+          "Sorry, I encountered an error generating a response. Please try again.",
+        );
       }
       setIsSending(false);
     };
@@ -128,18 +118,6 @@ export const useChat = () => {
                 message: event.message,
                 status: event.status,
               });
-              break;
-
-            case "tool_start":
-              updateMessageToolCall(assistantMsgId, event.tool_name, "started");
-              break;
-
-            case "tool_end":
-              updateMessageToolCall(
-                assistantMsgId,
-                event.tool_name,
-                "completed",
-              );
               break;
 
             case "token":
@@ -177,11 +155,8 @@ export const useChat = () => {
     attachedFiles,
     sendMessage,
     cancelStream,
-    resetChat: resetMessages,
     addAttachedFile,
     removeAttachedFile,
-    clearAttachedFiles,
     isSending,
-    error,
   };
 };

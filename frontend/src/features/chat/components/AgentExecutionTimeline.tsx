@@ -3,9 +3,9 @@
 import { useState, FC } from "react";
 import { Brain, CheckCircle2, ChevronRight } from "lucide-react";
 import { AgentActivity } from "../types/chat.types";
-import { Marker, MarkerIcon, MarkerContent } from "@/components/ui/marker";
-import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
+import { Marker, MarkerIcon, MarkerContent } from "@/shared/ui/marker";
+import { Spinner } from "@/shared/ui/spinner";
+import { cn } from "@/shared/lib/utils";
 
 interface AgentExecutionTimelineProps {
   activities?: AgentActivity[];

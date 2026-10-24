@@ -1,3 +1,13 @@
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export function resolveBackendUrl(urlOrPath: string): string {
+  if (urlOrPath.startsWith("/api/")) {
+    return `${API_BASE_URL}${urlOrPath}`;
+  }
+  return urlOrPath;
+}
+
 /**
  * Safely parses a single Server-Sent Event payload line (e.g. "data: {...}").
  * Returns the parsed event typed as T, or null if the line is not a valid SSE payload.
@@ -23,8 +33,10 @@ function parseSSEEvent<T>(line: string): T | null {
 /**
  * Extracts error details from a failed HTTP response, with fallback handling.
  */
-async function extractErrorMessage(response: Response): Promise<string> {
-  const fallbackMessage = "Failed to communicate with AI assistant.";
+export async function extractErrorMessage(
+  response: Response,
+  fallbackMessage = "Failed to communicate with AI assistant.",
+): Promise<string> {
   try {
     const jsonErr = (await response.json()) as { detail?: string };
     return jsonErr?.detail || fallbackMessage;
@@ -42,8 +54,7 @@ export async function apiStream<T>(
   onEvent: (event: T) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  const response = await fetch(`${baseUrl}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

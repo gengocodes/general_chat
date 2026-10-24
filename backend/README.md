@@ -88,8 +88,8 @@ sequenceDiagram
     Router->>UC: execute(user_message, history, attached_files)
     UC->>UC: prepare_conversation_history() & format_user_prompt()
     UC->>Adapter: stream_chat(system_prompt, user_message, history)
-    Adapter-->>Router: StreamStatusEvent & StreamActivityEvent ("started")
-    Router-->>Client: SSE data: {"type": "status" / "activity"}
+    Adapter-->>Router: StreamActivityEvent ("started")
+    Router-->>Client: SSE data: {"type": "activity"}
 
     loop Up to MAX_TOOL_TURNS (5)
         Adapter->>Adapter: _stream_model_turn() via LangChain astream_events
@@ -98,12 +98,12 @@ sequenceDiagram
 
         opt Model requests tool calls
             Adapter->>Adapter: _group_tool_calls() -> list[ToolCallGroup]
-            Adapter-->>Router: StreamActivityEvent & StreamToolStartEvent
+            Adapter-->>Router: StreamActivityEvent ("started")
             Adapter->>Exec: execute(group.calls, messages)
             Exec->>Doc: convert_docx_to_pdf / convert_pdf_to_docx
             Doc-->>Exec: AgentToolResult[DocumentConvertResult]
             Exec-->>Adapter: list[ExecutedToolResult] (appends ToolMessage)
-            Adapter-->>Router: StreamToolEndEvent & StreamActivityEvent ("completed")
+            Adapter-->>Router: StreamActivityEvent ("completed")
         end
     end
 
@@ -141,7 +141,7 @@ Use **named, structured classes** according to the layer's responsibility:
 | **Domain Entities, Value Objects & Port Returns** | `@dataclass(frozen=True)` | `ChatMessage`, `StoredFile`, `FileDownload` (`app/domain/entities/`) |
 | **Internal Adapter / Helper Return Values & Cache Keys** | `@dataclass(frozen=True)` | `ConversionPaths` (`document_service.py`), `ToolCacheKey`, `ExecutedToolResult` (`tool_executor.py`), `ToolCallGroup` (`langchain_adapter.py`) |
 | **Mutable Internal Stream Accumulators** | `@dataclass` | `_TurnStreamCollector`, `AgentChatContext` (`langchain_adapter.py`) |
-| **Serialized Stream Events & Tool Envelopes** | `pydantic.BaseModel` | `StreamTokenEvent`, `AgentToolResult[T]` (`app/domain/events.py`, `tools.py`) |
+| **Serialized Stream Events & Tool Envelopes** | `pydantic.BaseModel` | `StreamActivityEvent`, `StreamTokenEvent`, `AgentToolResult[T]` (`app/domain/events.py`, `tools.py`) |
 | **HTTP Request / Response Payloads (DTOs)** | `pydantic.BaseModel` | `ChatRequest`, `FileUploadResponse` (`app/presentation/schemas/`) |
 
 #### Bad vs. Good Example

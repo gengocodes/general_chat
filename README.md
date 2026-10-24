@@ -33,8 +33,7 @@ genchat/
 │   ├── src/
 │   │   ├── app/                   # Root layout and application route shell
 │   │   ├── features/chat/         # Chat UI components, hooks, Zustand store, API service
-│   │   ├── shared/                # Fetch-based SSE stream parser and shared UI primitives
-│   │   └── types/                 # Shared TypeScript contracts
+│   │   └── shared/                # Shared SSE/HTTP API client, UI primitives, and utilities
 │   └── package.json
 ├── docker-compose.yml             # Local container orchestration
 ├── AGENTS.md                      # Non-negotiable engineering & architectural rules
@@ -123,10 +122,7 @@ Events are streamed as `data: <JSON>\n\n` frames discriminated by `"type"`:
 
 | `type` | Payload | Description |
 | :--- | :--- | :--- |
-| `status` | `{"type": "status", "status": "analyzing" \| "executing_tools", "message": string}` | Agent phase transition |
-| `activity` | `{"type": "activity", "id": string, "message": string, "status": "started" \| "completed"}` | Execution timeline milestone |
-| `tool_start` | `{"type": "tool_start", "tool_name": string}` | Tool invocation started |
-| `tool_end` | `{"type": "tool_end", "tool_name": string}` | Tool invocation completed |
+| `activity` | `{"type": "activity", "id": string, "message": string, "status": "started" \| "completed"}` | Execution timeline milestone (`AgentExecutionTimeline`) |
 | `token` | `{"type": "token", "token": string}` | Incremental assistant text token |
 | `error` | `{"type": "error", "error": string}` | Terminal stream error message |
 | `complete` | `{"type": "complete"}` | Generation completed |

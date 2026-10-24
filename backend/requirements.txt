@@ -14,6 +14,8 @@ langchain-google-genai>=2.0.0
 
 # Document Handling & Multipart Uploads
 python-multipart>=0.0.9
+docx2pdf>=0.1.8
+pdf2docx>=0.5.8
 
 # Testing & Development
 pytest>=8.0.0

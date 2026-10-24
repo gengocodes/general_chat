@@ -6,19 +6,6 @@ export interface AgentActivity {
   status: ActivityStatus;
 }
 
-export interface AgentToolCall {
-  id: string;
-  name: string;
-  label: string;
-  status: ActivityStatus;
-}
-
-export interface DiscoveredSource {
-  title: string;
-  url: string;
-  domain: string;
-}
-
 export interface ChatMessageItem {
   id: string;
   role: "user" | "assistant";
@@ -26,7 +13,6 @@ export interface ChatMessageItem {
   createdAt: Date;
   attachedFiles?: string[];
   activities?: AgentActivity[];
-  tools?: AgentToolCall[];
   executionTimeSeconds?: number;
 }
 
@@ -37,16 +23,15 @@ export interface ChatHistoryMessage {
 
 export interface ChatRequest {
   message: string;
-  history?: ChatHistoryMessage[];
-  attached_files?: string[];
+  history: ChatHistoryMessage[];
+  attached_files: string[];
 }
 
-export type StreamStatus = "analyzing" | "executing_tools";
-
-export interface StreamStatusEvent {
-  type: "status";
-  status: StreamStatus;
-  message?: string;
+export interface FileUploadResponse {
+  filename: string;
+  original_name: string;
+  size_bytes: number;
+  download_url: string;
 }
 
 export interface StreamActivityEvent {
@@ -54,16 +39,6 @@ export interface StreamActivityEvent {
   id: string;
   message: string;
   status: ActivityStatus;
-}
-
-export interface StreamToolStartEvent {
-  type: "tool_start";
-  tool_name: string;
-}
-
-export interface StreamToolEndEvent {
-  type: "tool_end";
-  tool_name: string;
 }
 
 export interface StreamTokenEvent {
@@ -81,10 +56,7 @@ export interface StreamCompleteEvent {
 }
 
 export type AgentStreamEvent =
-  | StreamStatusEvent
   | StreamActivityEvent
-  | StreamToolStartEvent
-  | StreamToolEndEvent
   | StreamTokenEvent
   | StreamErrorEvent
   | StreamCompleteEvent;
@@ -97,4 +69,5 @@ export interface ChatServiceContract {
     onEvent: StreamEventCallback,
     signal?: AbortSignal,
   ): Promise<void>;
+  uploadFile(file: File): Promise<FileUploadResponse>;
 }

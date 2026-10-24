@@ -39,7 +39,6 @@ async def upload_file(
             filename=stored.filename,
             original_name=stored.original_name,
             size_bytes=stored.size_bytes,
-            file_path=stored.file_path,
             download_url=build_file_download_url(stored.filename),
         )
     except InvalidFileError as exc:
