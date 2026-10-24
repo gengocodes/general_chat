@@ -1,9 +1,35 @@
 export type ActivityStatus = "started" | "completed";
 
+export type PromptCategoryIcon =
+  | "sparkles"
+  | "files"
+  | "code"
+  | "pen"
+  | "lightbulb";
+
+export interface PromptSuggestion {
+  label: string;
+  prompt: string;
+}
+
+export interface PromptCategory {
+  id: string;
+  label: string;
+  icon: PromptCategoryIcon;
+  items: readonly PromptSuggestion[];
+}
+
 export interface AgentActivity {
   id: string;
   message: string;
   status: ActivityStatus;
+}
+
+export interface AttachedFileItem {
+  objectKey: string;
+  originalName: string;
+  sizeBytes: number;
+  downloadUrl: string;
 }
 
 export interface ChatMessageItem {
@@ -11,7 +37,7 @@ export interface ChatMessageItem {
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
-  attachedFiles?: string[];
+  attachedFiles?: AttachedFileItem[];
   activities?: AgentActivity[];
   executionTimeSeconds?: number;
 }

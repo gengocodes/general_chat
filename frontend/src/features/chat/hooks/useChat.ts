@@ -62,6 +62,7 @@ export const useChat = () => {
       }));
 
     const currentFiles = [...attachedFiles];
+    const currentObjectKeys = currentFiles.map((f) => f.objectKey);
 
     const userMsg: ChatMessageItem = {
       id: `user-${Date.now()}`,
@@ -106,7 +107,7 @@ export const useChat = () => {
         {
           message: trimmed,
           history: historyPayload,
-          attached_files: currentFiles,
+          attached_files: currentObjectKeys,
         },
         (event: AgentStreamEvent) => {
           if (controller.signal.aborted) return;

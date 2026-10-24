@@ -1,16 +1,20 @@
 import { create } from "zustand";
-import { AgentActivity, ChatMessageItem } from "../types/chat.types";
+import {
+  AgentActivity,
+  AttachedFileItem,
+  ChatMessageItem,
+} from "../types/chat.types";
 
 interface ChatState {
   messages: ChatMessageItem[];
-  attachedFiles: string[];
+  attachedFiles: AttachedFileItem[];
   addMessage: (msg: ChatMessageItem) => void;
   appendMessageContent: (id: string, chunk: string) => void;
   updateMessageActivity: (msgId: string, activity: AgentActivity) => void;
   setExecutionTime: (msgId: string, durationSeconds: number) => void;
   finalizeMessageActivities: (msgId: string) => void;
-  addAttachedFile: (filename: string) => void;
-  removeAttachedFile: (filename: string) => void;
+  addAttachedFile: (file: AttachedFileItem) => void;
+  removeAttachedFile: (objectKey: string) => void;
   clearAttachedFiles: () => void;
 }
 
@@ -75,14 +79,16 @@ export const useChatStore = create<ChatState>((set) => ({
       }),
     })),
 
-  addAttachedFile: (filename: string) =>
+  addAttachedFile: (file: AttachedFileItem) =>
     set((state) => ({
-      attachedFiles: [...state.attachedFiles, filename],
+      attachedFiles: [...state.attachedFiles, file],
     })),
 
-  removeAttachedFile: (filename: string) =>
+  removeAttachedFile: (objectKey: string) =>
     set((state) => ({
-      attachedFiles: state.attachedFiles.filter((f) => f !== filename),
+      attachedFiles: state.attachedFiles.filter(
+        (f) => f.objectKey !== objectKey,
+      ),
     })),
 
   clearAttachedFiles: () =>

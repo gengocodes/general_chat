@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
-import { DEFAULT_PROMPTS } from "../constants/chat.constants";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
+import { PromptCategorySelector } from "./PromptCategorySelector";
 
 export const ChatWindow: React.FC = () => {
   const {
@@ -18,11 +17,59 @@ export const ChatWindow: React.FC = () => {
     removeAttachedFile,
   } = useChat();
 
+  const [inputValue, setInputValue] = useState("");
+  const [hoveredPrompt, setHoveredPrompt] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
+
+  const isEmptyState = messages.length === 0;
+
+  if (isEmptyState) {
+    return (
+      <div className="flex flex-col h-full w-full bg-background overflow-y-auto px-4 sm:px-6 py-8">
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto my-auto animate-in fade-in-50 duration-300">
+          <div className="text-center mb-7">
+            <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+              Chat with Gengo
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Paul Corsino&apos;s AI assistant. How can I help you today?
+            </p>
+          </div>
+
+          <div className="w-full">
+            <ChatInput
+              value={inputValue}
+              onChange={setInputValue}
+              placeholder={hoveredPrompt || "Ask Gengo"}
+              onSend={sendMessage}
+              onCancel={cancelStream}
+              isSending={isSending}
+              attachedFiles={attachedFiles}
+              onAddFile={addAttachedFile}
+              onRemoveFile={removeAttachedFile}
+              showDisclaimer={false}
+            />
+
+            <PromptCategorySelector
+              onHoverPrompt={setHoveredPrompt}
+              onSelectPrompt={(prompt) => setInputValue(prompt)}
+            />
+          </div>
+        </div>
+
+        <footer className="w-full pt-4 text-center shrink-0">
+          <p className="text-[11px] text-muted-foreground/65 select-none">
+            Gengo can make mistakes. Uploaded &amp; converted files expire
+            automatically after 24 hours.
+          </p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
@@ -38,38 +85,6 @@ export const ChatWindow: React.FC = () => {
             );
           })}
 
-          {messages.length === 0 && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in-50 duration-500 max-w-3xl mx-auto px-1 py-4 sm:py-8 my-auto">
-              <div className="p-3 bg-primary/10 rounded-2xl mb-4 border border-primary/20 text-primary">
-                <Sparkles className="size-8" />
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15] max-w-2xl">
-                Chat with <span className="text-primary">GenChat</span>
-              </h1>
-
-              <p className="text-xs sm:text-base text-muted-foreground mt-2 sm:mt-3.5 max-w-lg leading-relaxed font-normal">
-                Paul Corsino&apos;s intelligent AI assistant. Ask questions,
-                brainstorm ideas, analyze data, or build next-gen solutions.
-              </p>
-
-              <div className="flex flex-wrap gap-2 justify-center mt-6 max-w-xl">
-                {DEFAULT_PROMPTS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => sendMessage(p)}
-                    disabled={isSending}
-                    className="text-xs px-3.5 py-2 rounded-full border border-border bg-card hover:bg-muted text-foreground transition-all cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <Sparkles className="size-3 text-muted-foreground" />
-                    <span>{p}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -77,6 +92,9 @@ export const ChatWindow: React.FC = () => {
       <footer className="w-full px-3 md:px-6 pt-2 pb-4 shrink-0">
         <div className="max-w-3xl md:max-w-4xl mx-auto w-full">
           <ChatInput
+            value={inputValue}
+            onChange={setInputValue}
+            placeholder="Ask Gengo"
             onSend={sendMessage}
             onCancel={cancelStream}
             isSending={isSending}
