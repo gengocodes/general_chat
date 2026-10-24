@@ -32,6 +32,10 @@ export interface AttachedFileItem {
   downloadUrl: string;
 }
 
+export type FileValidationResult =
+  | { valid: true }
+  | { valid: false; error: string };
+
 export interface ChatMessageItem {
   id: string;
   role: "user" | "assistant";

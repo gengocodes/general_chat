@@ -280,7 +280,22 @@ Create Pydantic request/response schemas in `app/presentation/schemas/`, call th
 
 ---
 
-## 6. Testing & Linting Checklist
+## 6. Abuse Protection: Rate Limits, Payload Bounds & File Types
+
+Implemented in the Presentation layer (`app/presentation/rate_limit.py`, wired as route dependencies in `app/presentation/dependencies.py`):
+
+| Endpoint | Setting | Default (per client IP / minute) |
+|---|---|---|
+| `POST /api/chat/stream` | `CHAT_RATE_LIMIT_PER_MINUTE` | `20` |
+| `POST /api/files/upload` | `UPLOAD_RATE_LIMIT_PER_MINUTE` | `10` |
+| `GET /api/files/download/{filename}` | `DOWNLOAD_RATE_LIMIT_PER_MINUTE` | `30` |
+
+- `SlidingWindowRateLimiter` is a thread-safe, in-memory sliding window keyed by client IP (first `X-Forwarded-For` hop, falling back to the socket peer). Exceeding the quota returns `429 Too Many Requests` with a `Retry-After` header.
+- Counters are per process. With multiple Cloud Run instances each instance enforces its own limit; use a shared store if strict global limits are required.
+- `ChatRequest` bounds: `message` ≤ 8000 chars, `history` ≤ 20 entries, `attached_files` ≤ 5 (violations return `422`).
+- Only `.pdf` and `.docx` uploads are accepted (`ALLOWED_FILE_EXTENSIONS` in `app/domain/entities/file.py`); other extensions return `400`. Uploads above 10 MB return `413`.
+
+## 7. Testing & Linting Checklist
 
 Before submitting any backend change, run both commands from the repository root:
 

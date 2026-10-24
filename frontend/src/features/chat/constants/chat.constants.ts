@@ -2,6 +2,11 @@ import { PromptCategory } from "../types/chat.types";
 
 export const ASSISTANT_NAME = "Gengo";
 
+export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+export const ALLOWED_FILE_EXTENSIONS = [".pdf", ".docx"] as const;
+export const FILE_INPUT_ACCEPT =
+  ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 export const PROMPT_CATEGORIES: readonly PromptCategory[] = [
   {
     id: "capabilities",

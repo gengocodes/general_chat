@@ -11,7 +11,10 @@ from app.domain.entities.message import ChatMessage
 from app.domain.events import AgentStreamEvent, StreamErrorEvent
 from app.application.use_cases.chat import StreamChatMessageUseCase
 from app.presentation.schemas.chat import ChatHistoryMessage, ChatRequest
-from app.presentation.dependencies import get_stream_chat_use_case
+from app.presentation.dependencies import (
+    chat_rate_limiter,
+    get_stream_chat_use_case,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,11 @@ def _format_sse_event(event: AgentStreamEvent) -> str:
     return f"data: {event.model_dump_json()}\n\n"
 
 
-@router.post("/stream", response_class=StreamingResponse)
+@router.post(
+    "/stream",
+    response_class=StreamingResponse,
+    dependencies=[Depends(chat_rate_limiter)],
+)
 async def chat_stream(
     request: ChatRequest,
     use_case: StreamChatMessageUseCase = Depends(get_stream_chat_use_case),

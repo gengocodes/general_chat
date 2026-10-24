@@ -40,18 +40,6 @@ const KIND_STYLES: Record<
     text: "text-blue-600 dark:text-blue-400",
     badgeBg: "bg-blue-600 dark:bg-blue-500 text-white",
   },
-  code: {
-    bg: "bg-muted",
-    border: "border-border",
-    text: "text-foreground",
-    badgeBg: "bg-foreground text-background",
-  },
-  text: {
-    bg: "bg-muted",
-    border: "border-border",
-    text: "text-foreground",
-    badgeBg: "bg-foreground text-background",
-  },
   generic: {
     bg: "bg-muted",
     border: "border-border",

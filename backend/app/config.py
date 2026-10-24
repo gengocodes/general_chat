@@ -33,6 +33,21 @@ class Settings(BaseSettings):
         min_length=1,
         description="Shared secret key for internal service-to-service authentication",
     )
+    CHAT_RATE_LIMIT_PER_MINUTE: int = Field(
+        default=20,
+        ge=1,
+        description="Maximum chat stream requests allowed per client IP per minute",
+    )
+    UPLOAD_RATE_LIMIT_PER_MINUTE: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum file upload requests allowed per client IP per minute",
+    )
+    DOWNLOAD_RATE_LIMIT_PER_MINUTE: int = Field(
+        default=30,
+        ge=1,
+        description="Maximum file download requests allowed per client IP per minute",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

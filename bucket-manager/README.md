@@ -58,6 +58,7 @@ flowchart TB
    - On Google Cloud Run, deploy `bucket-manager` with `--no-allow-unauthenticated` (internal ingress) in addition to `X-Internal-API-Key`.
 2. **Non-Guessable Object Keys (IDOR & Collision Prevention):**
    - Uploaded filenames are sanitized via `sanitize_filename()` and prefixed with a 12-character UUID hex (`generate_object_key()` -> `{uuid12}_{clean_filename}`).
+   - Only `.pdf` and `.docx` extensions are accepted (`ALLOWED_OBJECT_EXTENSIONS`); others return HTTP `400`.
 3. **10 MB Streaming Upload Guard (`MAX_UPLOAD_SIZE_BYTES`):**
    - `read_bounded_stream()` in `app/application/use_cases/object_ops.py` reads incoming uploads in 64 KB chunks and immediately aborts with HTTP `413 Content Too Large` if the stream exceeds `10,485,760` bytes.
 4. **Short-Lived Presigned Download URLs:**

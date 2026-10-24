@@ -18,6 +18,7 @@ from app.infrastructure.document.document_processor_adapter import (
 )
 from app.infrastructure.llm.document_tools import create_document_tools
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
+from app.presentation.rate_limit import SlidingWindowRateLimiter
 
 # Singletons / reusable infrastructure instances
 _storage_adapter = BucketManagerStorageAdapter(
@@ -29,6 +30,19 @@ _document_processor = DocumentProcessorHttpAdapter(
     internal_api_key=settings.INTERNAL_API_KEY,
 )
 _document_tools = create_document_tools(document_processor=_document_processor)
+
+chat_rate_limiter = SlidingWindowRateLimiter(
+    max_requests=settings.CHAT_RATE_LIMIT_PER_MINUTE,
+    window_seconds=60,
+)
+upload_rate_limiter = SlidingWindowRateLimiter(
+    max_requests=settings.UPLOAD_RATE_LIMIT_PER_MINUTE,
+    window_seconds=60,
+)
+download_rate_limiter = SlidingWindowRateLimiter(
+    max_requests=settings.DOWNLOAD_RATE_LIMIT_PER_MINUTE,
+    window_seconds=60,
+)
 
 
 def get_chat_model_adapter() -> LangChainChatAdapter:

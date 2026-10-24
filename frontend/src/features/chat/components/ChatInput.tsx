@@ -8,10 +8,16 @@ import React, {
   ChangeEvent,
 } from "react";
 import { ArrowUp, Square, Paperclip, Clock } from "lucide-react";
+import { validateUploadFile } from "@/shared/lib/file-utils";
 import { Button } from "@/shared/ui/button";
 import { FileAttachmentCard } from "@/shared/ui/file-card";
+import {
+  ALLOWED_FILE_EXTENSIONS,
+  FILE_INPUT_ACCEPT,
+  MAX_UPLOAD_SIZE_BYTES,
+} from "../constants/chat.constants";
 import { chatService } from "../services/chat.service";
-import { AttachedFileItem } from "../types/chat.types";
+import { AttachedFileItem, FileValidationResult } from "../types/chat.types";
 
 interface ChatInputProps {
   value: string;
@@ -60,6 +66,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const validation: FileValidationResult = validateUploadFile(
+      file,
+      MAX_UPLOAD_SIZE_BYTES,
+      ALLOWED_FILE_EXTENSIONS,
+    );
+    if (!validation.valid) {
+      setUploadError(validation.error);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
 
     setUploadingFilename(file.name);
     setUploadError(null);
@@ -122,7 +141,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           type="file"
           ref={fileInputRef}
           onChange={handleFileUpload}
-          accept=".pdf,.docx,.doc,.txt,.md,.csv,.json"
+          accept={FILE_INPUT_ACCEPT}
           className="hidden"
         />
 
@@ -176,7 +195,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSending || isUploading}
-              title="Attach document (max 10 MB)"
+              title="Attach PDF or DOCX document (max 10 MB)"
               className="h-8 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer gap-1.5"
             >
               <Paperclip className="size-3.5" />

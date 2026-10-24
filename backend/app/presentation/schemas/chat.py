@@ -16,10 +16,19 @@ class ChatHistoryMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Chat request schema with optional attached file IDs/names"""
 
-    message: str = Field(..., min_length=1, description="User prompt or instruction")
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=8000,
+        description="User prompt or instruction",
+    )
     history: list[ChatHistoryMessage] = Field(
-        default_factory=list, description="Prior conversation history"
+        default_factory=list,
+        max_length=20,
+        description="Prior conversation history",
     )
     attached_files: list[str] = Field(
-        default_factory=list, description="List of attached filenames or paths in uploads/"
+        default_factory=list,
+        max_length=5,
+        description="List of attached object keys",
     )

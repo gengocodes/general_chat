@@ -17,8 +17,10 @@ from app.application.use_cases.file import (
 )
 from app.presentation.schemas.file import FileUploadResponse
 from app.presentation.dependencies import (
+    download_rate_limiter,
     get_upload_file_use_case,
     get_file_download_use_case,
+    upload_rate_limiter,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/files", tags=["Files"])
 
 
-@router.post("/upload", response_model=FileUploadResponse)
+@router.post(
+    "/upload",
+    response_model=FileUploadResponse,
+    dependencies=[Depends(upload_rate_limiter)],
+)
 async def upload_file(
     file: UploadFile = File(...),
     use_case: UploadFileUseCase = Depends(get_upload_file_use_case),
@@ -58,7 +64,10 @@ async def upload_file(
         ) from exc
 
 
-@router.get("/download/{filename}")
+@router.get(
+    "/download/{filename}",
+    dependencies=[Depends(download_rate_limiter)],
+)
 async def download_file(
     filename: str,
     use_case: GetFileDownloadUseCase = Depends(get_file_download_use_case),

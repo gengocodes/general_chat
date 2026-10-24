@@ -58,16 +58,20 @@ def test_upload_and_download_flow(monkeypatch):
     monkeypatch.setattr(dependencies, "_storage_adapter", test_storage)
 
     file_content = b"Integration test file bytes"
-    files = {"file": ("test_upload.txt", io.BytesIO(file_content), "text/plain")}
+    files = {
+        "file": ("test_upload.pdf", io.BytesIO(file_content), "application/pdf")
+    }
 
     # 1. Upload
     upload_res = client.post("/api/files/upload", files=files)
     assert upload_res.status_code == 200
     data = upload_res.json()
     saved_key = data["filename"]
-    assert saved_key == "deadbeef1234_test_upload.txt"
+    assert saved_key == "deadbeef1234_test_upload.pdf"
     assert data["size_bytes"] == len(file_content)
-    assert data["download_url"].startswith("https://r2.example.com/deadbeef1234_test_upload.txt")
+    assert data["download_url"].startswith(
+        "https://r2.example.com/deadbeef1234_test_upload.pdf"
+    )
 
     # 2. Download redirects (307) to presigned R2 URL
     download_res = client.get(
@@ -79,9 +83,20 @@ def test_upload_and_download_flow(monkeypatch):
     )
 
     # 3. Missing file returns 404
-    missing_res = client.get("/api/files/download/missing_doc.txt")
+    missing_res = client.get("/api/files/download/missing_doc.pdf")
     assert missing_res.status_code == 404
     assert missing_res.json() == {"detail": "Requested file not found."}
+
+
+def test_upload_unsupported_extension_returns_400(monkeypatch):
+    """Verify upload endpoint rejects unsupported file extensions (.txt, .exe) with HTTP 400."""
+    test_storage = _DummyStorageAdapter()
+    monkeypatch.setattr(dependencies, "_storage_adapter", test_storage)
+
+    files = {"file": ("notes.txt", io.BytesIO(b"plain text"), "text/plain")}
+    res = client.post("/api/files/upload", files=files)
+    assert res.status_code == 400
+    assert res.json() == {"detail": "Only .pdf and .docx files are supported."}
 
 
 @pytest.mark.anyio
@@ -106,7 +121,13 @@ def test_upload_oversized_file_returns_413(monkeypatch):
     )
     monkeypatch.setattr(dependencies, "_storage_adapter", test_storage)
 
-    files = {"file": ("large.bin", io.BytesIO(b"0123456789ABCDEF"), "application/octet-stream")}
+    files = {
+        "file": (
+            "large.pdf",
+            io.BytesIO(b"0123456789ABCDEF"),
+            "application/pdf",
+        )
+    }
     res = client.post("/api/files/upload", files=files)
     assert res.status_code == 413
 
@@ -136,3 +157,20 @@ def test_chat_stream_endpoint():
         assert 'data: {"type":"complete"}\n\n' in body_text
     finally:
         app.dependency_overrides.pop(get_stream_chat_use_case, None)
+
+
+def test_chat_payload_bounds_validation():
+    """Verify ChatRequest rejects oversized messages or excessive attached files with HTTP 422."""
+    too_long_msg = client.post(
+        "/api/chat/stream", json={"message": "x" * 8001}
+    )
+    assert too_long_msg.status_code == 422
+
+    too_many_files = client.post(
+        "/api/chat/stream",
+        json={
+            "message": "convert all",
+            "attached_files": [f"doc_{i}.pdf" for i in range(6)],
+        },
+    )
+    assert too_many_files.status_code == 422

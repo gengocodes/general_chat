@@ -114,6 +114,9 @@ def test_upload_size_limit_and_invalid_filename():
     with pytest.raises(InvalidObjectError):
         sanitize_filename("   ")
 
+    with pytest.raises(InvalidObjectError):
+        sanitize_filename("script.sh")
+
 
 def test_api_upload_presign_content_and_404():
     """Verify FastAPI object routes with dependency-overridden R2StorageAdapter."""

@@ -131,33 +131,33 @@ def test_bucket_manager_storage_adapter_and_use_cases():
         is_success=True,
     )
     mock_upload_res.json.return_value = {
-        "object_key": "a1b2c3d4e5f6_test_doc.txt",
-        "original_name": "test_doc.txt",
+        "object_key": "a1b2c3d4e5f6_test_doc.pdf",
+        "original_name": "test_doc.pdf",
         "size_bytes": len(file_bytes),
-        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.txt?sig=1",
+        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.pdf?sig=1",
     }
 
     with patch("httpx.post", return_value=mock_upload_res):
         stored = upload_use_case.execute(
-            original_name="test_doc.txt", file_obj=io.BytesIO(file_bytes)
+            original_name="test_doc.pdf", file_obj=io.BytesIO(file_bytes)
         )
 
-    assert stored.filename == "a1b2c3d4e5f6_test_doc.txt"
-    assert stored.original_name == "test_doc.txt"
+    assert stored.filename == "a1b2c3d4e5f6_test_doc.pdf"
+    assert stored.original_name == "test_doc.pdf"
     assert stored.size_bytes == len(file_bytes)
     assert stored.download_url.startswith("https://r2.example.com/")
 
     mock_presign_res = MagicMock(status_code=200, is_success=True)
     mock_presign_res.json.return_value = {
-        "object_key": "a1b2c3d4e5f6_test_doc.txt",
-        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.txt?sig=2",
+        "object_key": "a1b2c3d4e5f6_test_doc.pdf",
+        "download_url": "https://r2.example.com/a1b2c3d4e5f6_test_doc.pdf?sig=2",
         "expires_in_seconds": 900,
     }
 
     with patch("httpx.get", return_value=mock_presign_res):
-        download = download_use_case.execute("a1b2c3d4e5f6_test_doc.txt")
+        download = download_use_case.execute("a1b2c3d4e5f6_test_doc.pdf")
 
-    assert download.filename == "a1b2c3d4e5f6_test_doc.txt"
+    assert download.filename == "a1b2c3d4e5f6_test_doc.pdf"
     assert download.download_url.endswith("sig=2")
 
     mock_404_res = MagicMock(status_code=404, is_success=False)
@@ -168,8 +168,11 @@ def test_bucket_manager_storage_adapter_and_use_cases():
     with pytest.raises(InvalidFileError):
         upload_use_case.execute("   ", io.BytesIO(b"data"))
 
+    with pytest.raises(InvalidFileError):
+        upload_use_case.execute("unsupported_notes.txt", io.BytesIO(b"data"))
+
     with pytest.raises(FileSizeLimitExceededError):
-        upload_use_case.execute("oversized.bin", io.BytesIO(b"x" * 101))
+        upload_use_case.execute("oversized.pdf", io.BytesIO(b"x" * 101))
 
 
 def test_document_processor_http_adapter():

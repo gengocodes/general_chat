@@ -1,4 +1,4 @@
-export type FileKind = "pdf" | "docx" | "code" | "text" | "generic";
+export type FileKind = "pdf" | "docx" | "generic";
 
 const UUID_PREFIX_REGEX = /^[0-9a-fA-F]{12}_/;
 
@@ -13,7 +13,7 @@ export function extractCleanFilename(keyOrFilename: string): string {
 }
 
 /**
- * Extract the uppercase file extension (e.g. "PDF", "DOCX", "TXT").
+ * Extract the uppercase file extension (e.g. "PDF", "DOCX").
  */
 export function getFileExtension(filename: string): string {
   const clean = extractCleanFilename(filename);
@@ -28,18 +28,32 @@ export function getFileExtension(filename: string): string {
 export function getFileKind(filename: string): FileKind {
   const ext = getFileExtension(filename).toLowerCase();
   if (ext === "pdf") return "pdf";
-  if (ext === "docx" || ext === "doc") return "docx";
-  if (
-    ["ts", "tsx", "js", "jsx", "py", "json", "html", "css", "sql", "sh"].includes(
-      ext,
-    )
-  ) {
-    return "code";
-  }
-  if (["txt", "md", "csv", "log"].includes(ext)) {
-    return "text";
-  }
+  if (ext === "docx") return "docx";
   return "generic";
+}
+
+/**
+ * Validate a candidate upload file against allowed extensions and maximum byte size.
+ */
+export function validateUploadFile(
+  file: File,
+  maxBytes: number,
+  allowedExtensions: readonly string[],
+): { valid: true } | { valid: false; error: string } {
+  const ext = `.${getFileExtension(file.name).toLowerCase()}`;
+  if (!allowedExtensions.includes(ext)) {
+    return {
+      valid: false,
+      error: "Only PDF (.pdf) and Word (.docx) files are supported.",
+    };
+  }
+  if (file.size > maxBytes) {
+    return {
+      valid: false,
+      error: "Uploaded file exceeds the 10 MB maximum size limit.",
+    };
+  }
+  return { valid: true };
 }
 
 /**
@@ -72,7 +86,7 @@ export function isFileDownloadUrl(href?: string): boolean {
  */
 export function resolveDownloadFilename(href: string, labelText: string): string {
   const trimmedLabel = labelText.trim();
-  if (/\.(pdf|docx|doc|txt|md|csv|json)$/i.test(trimmedLabel)) {
+  if (/\.(pdf|docx)$/i.test(trimmedLabel)) {
     return extractCleanFilename(trimmedLabel);
   }
   try {

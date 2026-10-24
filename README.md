@@ -102,7 +102,8 @@ Lightweight AI agent orchestrator and public API gateway (`Presentation` → `Ap
 - **Domain (`app/domain/`):** Zero external framework or transport dependencies. Defines frozen dataclasses (`ChatMessage`, `StoredFile`, `FileDownload`), discriminated union stream events (`AgentStreamEvent`), tool envelopes (`AgentToolResult[T]`), and the `DomainError` hierarchy.
 - **Application (`app/application/`):** Orchestrates conversation history sanitization/truncation, prompt formatting, and file upload/download use cases via abstract ports (`ChatModelPort`, `FileStoragePort`, `DocumentProcessorPort`).
 - **Infrastructure (`app/infrastructure/`):** Concrete port implementations (`LangChainChatAdapter`, `BucketManagerStorageAdapter`, `DocumentProcessorHttpAdapter`, `ToolExecutor`).
-- **Presentation (`app/presentation/`):** FastAPI routers (`/api/chat/stream`, `/api/files`), Pydantic transport DTOs, SSE frame serialization, and the Composition Root (`dependencies.py`).
+- **Presentation (`app/presentation/`):** FastAPI routers (`/api/chat/stream`, `/api/files`), Pydantic transport DTOs, SSE frame serialization, per-IP sliding-window rate limiting (`rate_limit.py`, `429` + `Retry-After`; defaults 20 chat / 10 upload / 30 download requests per minute, configurable via `*_RATE_LIMIT_PER_MINUTE`), and the Composition Root (`dependencies.py`).
+- **Upload policy:** Only `.pdf` and `.docx` files up to 10 MB are accepted (enforced in the frontend, `backend/`, and `bucket-manager/`).
 
 ### 2. Bucket-Manager (`bucket-manager/`)
 Dedicated internal microservice isolating Cloudflare R2 credentials (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) from the LLM/agent runtime:

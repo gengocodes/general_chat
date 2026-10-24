@@ -10,17 +10,22 @@ from app.domain.errors import InvalidObjectError
 
 
 MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
+ALLOWED_OBJECT_EXTENSIONS: frozenset[str] = frozenset({".pdf", ".docx"})
 
 
 def sanitize_filename(filename: str) -> str:
     """
-    Sanitize an untrusted filename by stripping directory components and whitespace.
-    Raises InvalidObjectError if the resulting filename is empty or a dot-segment.
+    Sanitize an untrusted filename by stripping directory components and whitespace,
+    and enforcing the allowed object extension whitelist (.pdf and .docx).
+    Raises InvalidObjectError if the filename is empty, invalid, or has an unsupported extension.
     """
     normalized = filename.replace("\\", "/")
     clean_name = posixpath.basename(normalized).strip()
     if not clean_name or clean_name in {".", ".."}:
         raise InvalidObjectError("Filename cannot be empty or invalid.")
+    _, extension = posixpath.splitext(clean_name)
+    if extension.lower() not in ALLOWED_OBJECT_EXTENSIONS:
+        raise InvalidObjectError("Only .pdf and .docx files are supported.")
     return clean_name
 
 
