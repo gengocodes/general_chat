@@ -134,6 +134,7 @@ cp backend/.env.example backend/.env
 ```
 
 - Set a shared `INTERNAL_API_KEY` across all three `.env` files.
+- On Cloud Run, set `INTERNAL_IAM_AUTH_ENABLED=true` on `backend` and `document-processor` and grant their runtime service accounts `roles/run.invoker` on the private services they call (`bucket-manager`, `document-processor`). Leave it `false` locally.
 - Configure Cloudflare R2 credentials in `bucket-manager/.env`.
 - Configure `GEMINI_API_KEY` and `GEMINI_MODEL` in `backend/.env`.
 

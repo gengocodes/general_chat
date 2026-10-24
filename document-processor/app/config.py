@@ -17,6 +17,13 @@ class Settings(BaseSettings):
         min_length=1,
         description="Internal URL of the bucket-manager microservice",
     )
+    INTERNAL_IAM_AUTH_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "Attach a Google Cloud Run ID token when calling bucket-manager "
+            "(required when bucket-manager is deployed with --no-allow-unauthenticated)"
+        ),
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

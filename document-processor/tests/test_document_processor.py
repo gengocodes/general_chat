@@ -77,6 +77,7 @@ def test_document_converter_adapter_and_use_case():
     adapter = DocumentConverterAdapter(
         bucket_manager_url="http://bucket-manager.test:8001",
         internal_api_key="test-internal-api-key",
+        auth=httpx.Auth(),
         http_client=mock_http,
     )
     use_case = ConvertDocumentUseCase(converter=adapter)

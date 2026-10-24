@@ -43,10 +43,12 @@ class DocumentConverterAdapter(DocumentConverterPort):
         self,
         bucket_manager_url: str,
         internal_api_key: str,
+        auth: httpx.Auth,
         http_client: httpx.Client | None = None,
     ):
         self._base_url = bucket_manager_url.rstrip("/")
         self._headers = {"X-Internal-API-Key": internal_api_key}
+        self._auth = auth
         self._client = http_client or httpx.Client(timeout=60.0)
 
     def _fetch_source_bytes(self, object_key: str) -> bytes:
@@ -55,6 +57,7 @@ class DocumentConverterAdapter(DocumentConverterPort):
             response = self._client.get(
                 f"{self._base_url}/api/objects/{object_key}/content",
                 headers=self._headers,
+                auth=self._auth,
             )
         except httpx.HTTPError as exc:
             logger.exception("Bucket-manager content fetch failed: %s", str(exc))
@@ -78,6 +81,7 @@ class DocumentConverterAdapter(DocumentConverterPort):
             response = self._client.post(
                 f"{self._base_url}/api/objects/upload",
                 headers=self._headers,
+                auth=self._auth,
                 files={
                     "file": (
                         output_filename,

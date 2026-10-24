@@ -15,3 +15,7 @@ pdf2docx>=0.5.8
 # Testing & Development
 pytest>=8.0.0
 anyio>=4.0.0
+
+# Google Cloud Run service-to-service auth (ID token)
+google-auth>=2.30.0
+requests>=2.31.0

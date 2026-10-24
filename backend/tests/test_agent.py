@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 import io
+import httpx
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk
 
@@ -119,6 +120,7 @@ def test_bucket_manager_storage_adapter_and_use_cases():
     storage = BucketManagerStorageAdapter(
         base_url="http://bucket-manager.test:8001",
         internal_api_key="test-internal-api-key",
+        auth=httpx.Auth(),
         max_upload_bytes=100,
     )
     upload_use_case = UploadFileUseCase(storage=storage)
@@ -180,6 +182,7 @@ def test_document_processor_http_adapter():
     adapter = DocumentProcessorHttpAdapter(
         base_url="http://document-processor.test:8002",
         internal_api_key="test-internal-api-key",
+        auth=httpx.Auth(),
     )
     mock_res = MagicMock(status_code=200, is_success=True)
     mock_res.json.return_value = {

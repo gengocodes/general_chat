@@ -22,10 +22,12 @@ class DocumentProcessorHttpAdapter(DocumentProcessorPort):
         self,
         base_url: str,
         internal_api_key: str,
+        auth: httpx.Auth,
         timeout_seconds: float = 120.0,
     ):
         self._base_url = base_url.rstrip("/")
         self._headers = {"X-Internal-API-Key": internal_api_key}
+        self._auth = auth
         self._timeout = timeout_seconds
 
     def _request_conversion(
@@ -36,6 +38,7 @@ class DocumentProcessorHttpAdapter(DocumentProcessorPort):
             response = httpx.post(
                 f"{self._base_url}/api/documents/convert",
                 headers=self._headers,
+                auth=self._auth,
                 json={"filename": clean_filename, "target_format": target_format},
                 timeout=self._timeout,
             )

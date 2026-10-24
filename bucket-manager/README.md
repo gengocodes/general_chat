@@ -56,6 +56,13 @@ flowchart TB
    - Every `/api/objects/*` endpoint requires the `X-Internal-API-Key` HTTP header.
    - `verify_internal_api_key` in `app/presentation/dependencies.py` verifies the header using `secrets.compare_digest` to prevent timing attacks.
    - On Google Cloud Run, deploy `bucket-manager` with `--no-allow-unauthenticated` (internal ingress) in addition to `X-Internal-API-Key`.
+   - Cloud Run IAM rejects callers without a Google-signed ID token (`403 ... Empty Authorization header value`) before the app runs. Callers (`backend`, `document-processor`) therefore set `INTERNAL_IAM_AUTH_ENABLED=true` and send `Authorization: Bearer <ID token>` (audience = this service's URL) alongside `X-Internal-API-Key`. Grant each caller's runtime service account the invoker role:
+     ```bash
+     gcloud run services add-iam-policy-binding general-chat-bucket-manager \
+       --region=<REGION> \
+       --member="serviceAccount:<CALLER_SA>@<PROJECT>.iam.gserviceaccount.com" \
+       --role="roles/run.invoker"
+     ```
 2. **Non-Guessable Object Keys (IDOR & Collision Prevention):**
    - Uploaded filenames are sanitized via `sanitize_filename()` and prefixed with a 12-character UUID hex (`generate_object_key()` -> `{uuid12}_{clean_filename}`).
    - Only `.pdf` and `.docx` extensions are accepted (`ALLOWED_OBJECT_EXTENSIONS`); others return HTTP `400`.

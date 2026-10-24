@@ -2,6 +2,7 @@
 
 import io
 from unittest.mock import MagicMock
+import httpx
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -117,6 +118,7 @@ def test_upload_oversized_file_returns_413(monkeypatch):
     test_storage = dependencies.BucketManagerStorageAdapter(
         base_url="http://bucket-manager.test:8001",
         internal_api_key="test-internal-api-key",
+        auth=httpx.Auth(),
         max_upload_bytes=10,
     )
     monkeypatch.setattr(dependencies, "_storage_adapter", test_storage)

@@ -48,11 +48,13 @@ class BucketManagerStorageAdapter(FileStoragePort):
         self,
         base_url: str,
         internal_api_key: str,
+        auth: httpx.Auth,
         max_upload_bytes: int = MAX_UPLOAD_SIZE_BYTES,
         timeout_seconds: float = 30.0,
     ):
         self._base_url = base_url.rstrip("/")
         self._headers = {"X-Internal-API-Key": internal_api_key}
+        self._auth = auth
         self._max_upload_bytes = max_upload_bytes
         self._timeout = timeout_seconds
 
@@ -64,6 +66,7 @@ class BucketManagerStorageAdapter(FileStoragePort):
             response = httpx.post(
                 f"{self._base_url}/api/objects/upload",
                 headers=self._headers,
+                auth=self._auth,
                 files={
                     "file": (
                         clean_filename,
@@ -105,6 +108,7 @@ class BucketManagerStorageAdapter(FileStoragePort):
             response = httpx.get(
                 f"{self._base_url}/api/objects/{clean_filename}/presigned",
                 headers=self._headers,
+                auth=self._auth,
                 timeout=self._timeout,
             )
         except httpx.HTTPError as exc:

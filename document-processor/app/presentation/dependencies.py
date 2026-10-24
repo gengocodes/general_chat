@@ -7,6 +7,7 @@ from fastapi import Depends, Header, HTTPException, status
 from app.config import settings
 from app.application.ports.document_converter_port import DocumentConverterPort
 from app.application.use_cases.convert_document import ConvertDocumentUseCase
+from app.infrastructure.cloud_run_auth import build_service_auth
 from app.infrastructure.converter.document_converter_adapter import (
     DocumentConverterAdapter,
 )
@@ -29,6 +30,9 @@ def get_converter_adapter() -> DocumentConverterPort:
     return DocumentConverterAdapter(
         bucket_manager_url=settings.BUCKET_MANAGER_URL,
         internal_api_key=settings.INTERNAL_API_KEY,
+        auth=build_service_auth(
+            settings.BUCKET_MANAGER_URL, settings.INTERNAL_IAM_AUTH_ENABLED
+        ),
     )
 
 

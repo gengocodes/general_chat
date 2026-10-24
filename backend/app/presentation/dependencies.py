@@ -10,6 +10,7 @@ from app.application.use_cases.file import (
     UploadFileUseCase,
     GetFileDownloadUseCase,
 )
+from app.infrastructure.cloud_run_auth import build_service_auth
 from app.infrastructure.storage.bucket_manager_adapter import (
     BucketManagerStorageAdapter,
 )
@@ -24,10 +25,16 @@ from app.presentation.rate_limit import SlidingWindowRateLimiter
 _storage_adapter = BucketManagerStorageAdapter(
     base_url=settings.BUCKET_MANAGER_URL,
     internal_api_key=settings.INTERNAL_API_KEY,
+    auth=build_service_auth(
+        settings.BUCKET_MANAGER_URL, settings.INTERNAL_IAM_AUTH_ENABLED
+    ),
 )
 _document_processor = DocumentProcessorHttpAdapter(
     base_url=settings.DOCUMENT_PROCESSOR_URL,
     internal_api_key=settings.INTERNAL_API_KEY,
+    auth=build_service_auth(
+        settings.DOCUMENT_PROCESSOR_URL, settings.INTERNAL_IAM_AUTH_ENABLED
+    ),
 )
 _document_tools = create_document_tools(document_processor=_document_processor)
 

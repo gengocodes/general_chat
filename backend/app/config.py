@@ -33,6 +33,14 @@ class Settings(BaseSettings):
         min_length=1,
         description="Shared secret key for internal service-to-service authentication",
     )
+    INTERNAL_IAM_AUTH_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "Attach a Google Cloud Run ID token when calling bucket-manager and "
+            "document-processor (required when they are deployed with "
+            "--no-allow-unauthenticated)"
+        ),
+    )
     CHAT_RATE_LIMIT_PER_MINUTE: int = Field(
         default=20,
         ge=1,
