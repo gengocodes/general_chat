@@ -1,5 +1,5 @@
 """
-FastAPI application entry point for GenChat - Paul Corsino's AI Assistant API
+FastAPI application entry point for Gengo AI Assistant API
 """
 
 import logging
@@ -24,9 +24,9 @@ class HealthResponse(BaseModel):
 
 
 app = FastAPI(
-    title="GenChat API",
+    title="Gengo API",
     description=(
-        "Paul Corsino's general AI chat assistant API "
+        "Gengo AI chat assistant API "
         "with streaming SSE and tool execution"
     ),
     version="1.0.0",

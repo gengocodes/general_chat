@@ -54,7 +54,7 @@ async def test_agent_stream_chat_basic_flow():
     mock_model = MagicMock()
     bound_model = MagicMock()
 
-    greeting = "Hello! I am GenChat, Paul Corsino's AI assistant."
+    greeting = "Hello! I am Gengo, an AI assistant."
     chunk1 = AIMessageChunk(content=greeting)
     final_output = AIMessage(content=greeting, tool_calls=[])
 
