@@ -5,32 +5,57 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      frontend-dependencies:
+        patterns:
+          - "*"
 
   # Backend Python dependencies
   - package-ecosystem: "pip"
     directory: "/backend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      backend-dependencies:
+        patterns:
+          - "*"
 
   # Bucket-Manager Python dependencies
   - package-ecosystem: "pip"
     directory: "/bucket-manager"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      bucket-manager-dependencies:
+        patterns:
+          - "*"
 
   # Document-Processor Python dependencies
   - package-ecosystem: "pip"
     directory: "/document-processor"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      document-processor-dependencies:
+        patterns:
+          - "*"
 
-  # GitHub Actions workflow dependencies
+  # GitHub Actions workflow updates
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 2
+    groups:
+      github-actions:
+        patterns:
+          - "*"
