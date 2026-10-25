@@ -17,7 +17,7 @@ python-multipart>=0.0.9
 
 # Testing & Development
 pytest>=8.0.0
-anyio>=4.0.0
+anyio>=4.15.1
 
 # Google Cloud Run service-to-service auth (ID token)
 google-auth>=2.30.0
