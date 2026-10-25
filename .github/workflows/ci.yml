@@ -70,7 +70,7 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: backend/.mypy_cache
           key: mypy-backend-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}-${{ hashFiles('backend/app/**', 'backend/tests/**') }}
@@ -124,7 +124,7 @@ jobs:
           cache-dependency-path: bucket-manager/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: bucket-manager/.mypy_cache
           key: mypy-bucket-manager-${{ runner.os }}-${{ hashFiles('bucket-manager/requirements.txt') }}-${{ hashFiles('bucket-manager/app/**', 'bucket-manager/tests/**') }}
@@ -177,7 +177,7 @@ jobs:
           cache-dependency-path: document-processor/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: document-processor/.mypy_cache
           key: mypy-doc-proc-${{ runner.os }}-${{ hashFiles('document-processor/requirements.txt') }}-${{ hashFiles('document-processor/app/**', 'document-processor/tests/**') }}
@@ -227,7 +227,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/.next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
