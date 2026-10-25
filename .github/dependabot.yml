@@ -11,6 +11,18 @@ updates:
       frontend-dependencies:
         patterns:
           - "*"
+    ignore:
+      # Block semver-major updates to TypeScript (e.g. TS 7.x) because typescript-eslint
+      # and eslint-config-next hard-fail on TS >= 7.0 until official support lands.
+      # Patch and minor releases (5.9.x) will continue to update automatically.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+      # Block semver-major updates to ESLint (e.g. ESLint 10.x) because peer plugins
+      # (eslint-plugin-react, eslint-plugin-jsx-a11y, eslint-plugin-import) currently
+      # require ESLint 9. Patch/minor releases (9.39.x) will continue to update automatically.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # Backend Python dependencies
   - package-ecosystem: "pip"
