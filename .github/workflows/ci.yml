@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   changes:
@@ -26,6 +27,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Fetch full history so dorny/paths-filter can diff against base branch on PRs
+          fetch-depth: 0
 
       - name: Detect file path changes
         id: filter
@@ -261,8 +265,14 @@ jobs:
     steps:
       - name: Evaluate pipeline results
         run: |
+          echo "Changes job result:            ${{ needs.changes.result }}"
+          echo "Backend job result:            ${{ needs.backend.result }}"
+          echo "Bucket-Manager job result:     ${{ needs.bucket-manager.result }}"
+          echo "Document-Processor job result: ${{ needs.document-processor.result }}"
+          echo "Frontend job result:           ${{ needs.frontend.result }}"
+
           results="${{ join(needs.*.result, ' ') }}"
-          echo "Pipeline job results: $results"
+          echo "Aggregated results string: $results"
 
           # Fail if any job failed or was cancelled
           if echo "$results" | grep -E -q '(failure|cancelled)'; then
