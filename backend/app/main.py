@@ -52,7 +52,7 @@ async def health() -> HealthResponse:
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Global exception handler logging unhandled server errors."""
     logger.exception(
         "Unhandled server error: %s %s - %s",

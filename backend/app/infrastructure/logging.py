@@ -4,7 +4,7 @@ import logging
 import sys
 
 
-def setup_logging():
+def setup_logging() -> None:
     """Configure centralized logging format for the application."""
     logging.basicConfig(
         level=logging.INFO,

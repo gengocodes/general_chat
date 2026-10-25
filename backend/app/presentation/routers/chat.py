@@ -2,7 +2,7 @@
 Chat endpoint with SSE streaming for GenChat AI Agent
 """
 
-from collections.abc import Sequence
+from collections.abc import AsyncGenerator, Sequence
 import logging
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -45,7 +45,7 @@ async def chat_stream(
     """Server-Sent Events (SSE) streaming chat endpoint."""
     domain_history = _to_domain_history(request.history)
 
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[str, None]:
         try:
             async for event in use_case.execute(
                 user_message=request.message,

@@ -5,7 +5,7 @@ LangChainChatAdapter implementing ChatModelPort
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 import logging
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 from pydantic import BaseModel, ConfigDict
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
@@ -47,7 +47,7 @@ class AgentChatContext:
 
     tools: list[BaseTool]
     messages: list[BaseMessage]
-    model: Runnable
+    model: Runnable[Any, Any]
 
 
 @dataclass(frozen=True)
@@ -146,7 +146,7 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
 
     async def _stream_model_turn(
         self,
-        model: Runnable,
+        model: Runnable[Any, Any],
         messages: list[BaseMessage],
         collector: _TurnStreamCollector,
     ) -> AsyncGenerator[StreamTokenEvent, None]:
@@ -225,11 +225,19 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
             ):
                 yield token_event
 
-    async def stream_chat(
+    def stream_chat(
         self,
         system_prompt: str,
         user_message: str,
         history: Sequence[ChatMessage] = (),
+    ) -> AsyncGenerator[AgentStreamEvent, None]:
+        return self._stream_events(system_prompt, user_message, history)
+
+    async def _stream_events(
+        self,
+        system_prompt: str,
+        user_message: str,
+        history: Sequence[ChatMessage],
     ) -> AsyncGenerator[AgentStreamEvent, None]:
         try:
             yield StreamActivityEvent(

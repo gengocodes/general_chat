@@ -15,7 +15,11 @@ from app.presentation.dependencies import get_stream_chat_use_case
 from app.presentation.routers.upload import upload_file
 from app.application.ports.file_storage_port import FileStoragePort
 from app.application.use_cases.chat import StreamChatMessageUseCase
+from app.application.use_cases.file import UploadFileUseCase
 from app.domain.events import StreamTokenEvent, StreamCompleteEvent
+from app.infrastructure.storage.bucket_manager_adapter import (
+    BucketManagerStorageAdapter,
+)
 
 client = TestClient(app)
 
@@ -106,7 +110,7 @@ async def test_upload_empty_filename_validation():
     mock_file = MagicMock()
     mock_file.filename = "   "
     storage = _DummyStorageAdapter()
-    use_case = dependencies.UploadFileUseCase(storage=storage)
+    use_case = UploadFileUseCase(storage=storage)
     with pytest.raises(HTTPException) as exc_info:
         await upload_file(file=mock_file, use_case=use_case)
     assert exc_info.value.status_code == 400
@@ -115,7 +119,7 @@ async def test_upload_empty_filename_validation():
 
 def test_upload_oversized_file_returns_413(monkeypatch):
     """Verify upload endpoint rejects files exceeding max_upload_bytes with HTTP 413."""
-    test_storage = dependencies.BucketManagerStorageAdapter(
+    test_storage = BucketManagerStorageAdapter(
         base_url="http://bucket-manager.test:8001",
         internal_api_key="test-internal-api-key",
         auth=httpx.Auth(),

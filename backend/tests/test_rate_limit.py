@@ -43,6 +43,7 @@ def test_limiter_blocks_after_quota_and_isolates_clients():
     with pytest.raises(HTTPException) as exc_info:
         limiter.check("1.1.1.1")
     assert exc_info.value.status_code == 429
+    assert exc_info.value.headers is not None
     assert int(exc_info.value.headers["Retry-After"]) >= 1
 
     limiter.check("2.2.2.2")

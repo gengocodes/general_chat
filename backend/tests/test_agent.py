@@ -4,7 +4,13 @@ from unittest.mock import MagicMock, patch
 import io
 import httpx
 import pytest
-from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    ToolCall,
+    ToolMessage,
+)
 
 from app.domain.entities.message import ChatMessage
 from app.domain.errors import (
@@ -104,15 +110,18 @@ def test_history_and_prompt_formatting_helpers():
 async def test_tool_executor_handles_unknown_tool():
     """Verify ToolExecutor appends an error ToolMessage when an unknown tool is requested."""
     executor = ToolExecutor(tools=[])
-    messages = []
-    tool_calls = [{"name": "hallucinated_tool", "args": {"x": 1}, "id": "call-1"}]
+    messages: list[BaseMessage] = []
+    tool_calls = [ToolCall(name="hallucinated_tool", args={"x": 1}, id="call-1")]
 
     results = await executor.execute(tool_calls, messages)
     assert len(results) == 1
     assert not results[0].success
+    assert results[0].error_message is not None
     assert "Unknown tool 'hallucinated_tool'" in results[0].error_message
     assert len(messages) == 1
-    assert messages[0].tool_call_id == "call-1"
+    tool_message = messages[0]
+    assert isinstance(tool_message, ToolMessage)
+    assert tool_message.tool_call_id == "call-1"
 
 
 def test_bucket_manager_storage_adapter_and_use_cases():

@@ -33,7 +33,8 @@ class CloudRunIdTokenAuth(httpx.Auth):
         with self._lock:
             try:
                 if self._credentials is None:
-                    self._credentials = id_token.fetch_id_token_credentials(
+                    # google-auth ships without type annotations for this helper.
+                    self._credentials = id_token.fetch_id_token_credentials(  # type: ignore[no-untyped-call]
                         self._audience, request=GoogleAuthRequest()
                     )
                 if not self._credentials.valid:

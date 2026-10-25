@@ -11,7 +11,7 @@ class ChatModelPort(ABC):  # pylint: disable=too-few-public-methods
     """Port for interacting with an AI chat model."""
 
     @abstractmethod
-    async def stream_chat(
+    def stream_chat(
         self,
         system_prompt: str,
         user_message: str,
