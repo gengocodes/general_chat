@@ -6,7 +6,7 @@ uvicorn[standard]>=0.30.0
 pydantic-settings>=2.4.0
 
 # HTTP Client & Multipart Uploads (used for S3 SigV4 R2 REST calls and TestClient)
-httpx>=0.27.0
+httpx>=0.28.1
 python-multipart>=0.0.9
 
 # Testing
