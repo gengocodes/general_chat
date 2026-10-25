@@ -26,14 +26,14 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Fetch full history so dorny/paths-filter can diff against base branch on PRs
           fetch-depth: 0
 
       - name: Detect file path changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             backend:
@@ -64,17 +64,17 @@ jobs:
         working-directory: backend
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: backend/.mypy_cache
           key: mypy-backend-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}-${{ hashFiles('backend/app/**', 'backend/tests/**') }}
@@ -118,17 +118,17 @@ jobs:
         working-directory: bucket-manager
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: bucket-manager/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: bucket-manager/.mypy_cache
           key: mypy-bucket-manager-${{ runner.os }}-${{ hashFiles('bucket-manager/requirements.txt') }}-${{ hashFiles('bucket-manager/app/**', 'bucket-manager/tests/**') }}
@@ -171,17 +171,17 @@ jobs:
         working-directory: document-processor
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: document-processor/requirements.txt
 
       - name: Cache Mypy cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: document-processor/.mypy_cache
           key: mypy-doc-proc-${{ runner.os }}-${{ hashFiles('document-processor/requirements.txt') }}-${{ hashFiles('document-processor/app/**', 'document-processor/tests/**') }}
@@ -221,17 +221,17 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Cache Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: frontend/.next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
