@@ -13,7 +13,7 @@ docx2pdf>=0.1.8
 pdf2docx>=0.5.8
 
 # Testing & Development
-pytest>=8.0.0
+pytest>=9.1.1
 anyio>=4.0.0
 
 # Google Cloud Run service-to-service auth (ID token)
