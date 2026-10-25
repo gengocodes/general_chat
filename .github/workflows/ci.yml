@@ -1,0 +1,273 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      bucket-manager: ${{ steps.filter.outputs.bucket-manager }}
+      document-processor: ${{ steps.filter.outputs.document-processor }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect file path changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+              - '.pylintrc'
+              - 'docker-compose.yml'
+            bucket-manager:
+              - 'bucket-manager/**'
+              - '.github/workflows/ci.yml'
+              - 'docker-compose.yml'
+            document-processor:
+              - 'document-processor/**'
+              - '.github/workflows/ci.yml'
+              - 'docker-compose.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+
+  backend:
+    name: Backend (FastAPI & Agent)
+    needs: [changes]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Cache Mypy cache
+        uses: actions/cache@v4
+        with:
+          path: backend/.mypy_cache
+          key: mypy-backend-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}-${{ hashFiles('backend/app/**', 'backend/tests/**') }}
+          restore-keys: |
+            mypy-backend-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}-
+            mypy-backend-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pylint pytest anyio httpx
+
+      - name: Run Pylint
+        run: |
+          python -m pylint --fail-under=10.00 app tests
+
+      - name: Run Mypy
+        run: |
+          python -m mypy app tests
+
+      - name: Run Pytest
+        env:
+          GEMINI_API_KEY: "dummy-key-for-tests"
+          GEMINI_MODEL: "gemini-1.5-flash"
+          FRONTEND_ORIGIN: "http://localhost:3000"
+          BUCKET_MANAGER_URL: "http://bucket-manager.test:8001"
+          DOCUMENT_PROCESSOR_URL: "http://document-processor.test:8002"
+          INTERNAL_API_KEY: "test-internal-api-key"
+          PYTHONPATH: "."
+        run: |
+          python -m pytest tests -v
+
+  bucket-manager:
+    name: Bucket-Manager (Cloudflare R2 Storage)
+    needs: [changes]
+    if: needs.changes.outputs.bucket-manager == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: bucket-manager
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: bucket-manager/requirements.txt
+
+      - name: Cache Mypy cache
+        uses: actions/cache@v4
+        with:
+          path: bucket-manager/.mypy_cache
+          key: mypy-bucket-manager-${{ runner.os }}-${{ hashFiles('bucket-manager/requirements.txt') }}-${{ hashFiles('bucket-manager/app/**', 'bucket-manager/tests/**') }}
+          restore-keys: |
+            mypy-bucket-manager-${{ runner.os }}-${{ hashFiles('bucket-manager/requirements.txt') }}-
+            mypy-bucket-manager-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pylint pytest anyio httpx
+
+      - name: Run Pylint
+        run: |
+          python -m pylint --rcfile=.pylintrc --fail-under=10.00 app tests
+
+      - name: Run Mypy
+        run: |
+          python -m mypy app tests
+
+      - name: Run Pytest
+        env:
+          INTERNAL_API_KEY: "test-internal-api-key"
+          R2_ENDPOINT_URL: "https://dummy-account.r2.cloudflarestorage.com"
+          R2_ACCESS_KEY_ID: "dummy-access-key"
+          R2_SECRET_ACCESS_KEY: "dummy-secret-key"
+          R2_BUCKET_NAME: "test-bucket"
+          PYTHONPATH: "."
+        run: |
+          python -m pytest tests -v
+
+  document-processor:
+    name: Document-Processor (LibreOffice / PDF-DOCX)
+    needs: [changes]
+    if: needs.changes.outputs.document-processor == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: document-processor
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: document-processor/requirements.txt
+
+      - name: Cache Mypy cache
+        uses: actions/cache@v4
+        with:
+          path: document-processor/.mypy_cache
+          key: mypy-doc-proc-${{ runner.os }}-${{ hashFiles('document-processor/requirements.txt') }}-${{ hashFiles('document-processor/app/**', 'document-processor/tests/**') }}
+          restore-keys: |
+            mypy-doc-proc-${{ runner.os }}-${{ hashFiles('document-processor/requirements.txt') }}-
+            mypy-doc-proc-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pylint pytest anyio httpx
+
+      - name: Run Pylint
+        run: |
+          python -m pylint --rcfile=.pylintrc --fail-under=10.00 app tests
+
+      - name: Run Mypy
+        run: |
+          python -m mypy app tests
+
+      - name: Run Pytest
+        env:
+          INTERNAL_API_KEY: "test-internal-api-key"
+          BUCKET_MANAGER_URL: "http://bucket-manager.test:8001"
+          PYTHONPATH: "."
+        run: |
+          python -m pytest tests -v
+
+  frontend:
+    name: Frontend (Next.js & TypeScript)
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}-
+            nextjs-${{ runner.os }}-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Next.js production build
+        run: npm run build
+
+  ci-gatekeeper:
+    name: CI Gatekeeper
+    if: always()
+    needs:
+      - changes
+      - backend
+      - bucket-manager
+      - document-processor
+      - frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Evaluate pipeline results
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Pipeline job results: $results"
+
+          # Fail if any job failed or was cancelled
+          if echo "$results" | grep -E -q '(failure|cancelled)'; then
+            echo "::error::One or more CI checks failed or were cancelled. Blocking merge/deployment."
+            exit 1
+          fi
+
+          echo "All targeted CI checks succeeded (skipped services were safely bypassed)."

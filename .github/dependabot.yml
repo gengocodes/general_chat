@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Frontend npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Backend Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Bucket-Manager Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/bucket-manager"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Document-Processor Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/document-processor"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
