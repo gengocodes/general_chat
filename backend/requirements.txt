@@ -1,6 +1,6 @@
 # API Framework
 fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
+uvicorn[standard]>=0.54.0
 
 # Environment Configuration
 pydantic-settings>=2.4.0
