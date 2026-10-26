@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { GengoLogo } from "@/shared/ui/gengo-logo";
 import { useChat } from "../hooks/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
@@ -31,7 +32,8 @@ export const ChatWindow: React.FC = () => {
     return (
       <div className="flex flex-col h-full w-full bg-background overflow-y-auto px-4 sm:px-6 py-8">
         <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto my-auto animate-in fade-in-50 duration-300">
-          <div className="text-center mb-7">
+          <div className="flex flex-col items-center text-center mb-7">
+            <GengoLogo className="size-14 sm:size-16 mb-3.5 drop-shadow-xs" />
             <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
               Chat with Gengo
             </h1>

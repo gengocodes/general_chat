@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GenChat",
+  title: "Gengo",
   description:
-    "A reusable, full-stack general AI chat assistant by Paul Corsino with real-time streaming.",
+    "Gengo — AI assistant of Paul Corsino",
 };
 
 export default function RootLayout({
