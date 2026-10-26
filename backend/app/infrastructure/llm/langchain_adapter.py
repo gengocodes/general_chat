@@ -2,9 +2,10 @@
 LangChainChatAdapter implementing ChatModelPort
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 import logging
+from types import MappingProxyType
 from typing import Any, AsyncGenerator
 from pydantic import BaseModel, ConfigDict
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -26,6 +27,7 @@ from app.domain.events import (
     StreamErrorEvent,
     StreamTokenEvent,
 )
+from app.domain.tools import ToolActivityLabels
 from app.application.ports.chat_model_port import ChatModelPort
 from app.infrastructure.llm.tool_executor import ToolExecutor
 
@@ -74,9 +76,14 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
         self,
         model: BaseChatModel,
         tools: Sequence[BaseTool] = (),
+        activity_labels: Mapping[str, ToolActivityLabels] = MappingProxyType({}),
     ):
+        missing = [t.name for t in tools if t.name not in activity_labels]
+        if missing:
+            raise ValueError(f"Missing activity labels for tools: {', '.join(missing)}")
         self.model = model
         self.tools = list(tools)
+        self.activity_labels = activity_labels
 
     @staticmethod
     def _to_langchain_messages(
@@ -131,10 +138,6 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
         return base_id if turn == 0 else f"{base_id}-turn-{turn}"
 
     @staticmethod
-    def _format_tool_title(tool_name: str) -> str:
-        return tool_name.replace("_", " ").title()
-
-    @staticmethod
     def _group_tool_calls(tool_calls: Sequence[ToolCall]) -> list[ToolCallGroup]:
         grouped: dict[str, list[ToolCall]] = {}
         for tc in tool_calls:
@@ -170,11 +173,11 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
     ) -> AsyncGenerator[AgentStreamEvent, None]:
         """Execute a group of tool calls and yield corresponding activity lifecycle events."""
         activity_id = self._get_activity_id(group.tool_name, turn)
-        human_name = self._format_tool_title(group.tool_name)
+        labels = self.activity_labels[group.tool_name]
 
         yield StreamActivityEvent(
             id=activity_id,
-            message=f"Executing {human_name}...",
+            message=labels.in_progress,
             status="started",
         )
 
@@ -182,7 +185,7 @@ class LangChainChatAdapter(ChatModelPort):  # pylint: disable=too-few-public-met
 
         yield StreamActivityEvent(
             id=activity_id,
-            message=f"Completed {human_name}",
+            message=labels.completed,
             status="completed",
         )
 

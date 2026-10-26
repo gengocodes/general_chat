@@ -26,6 +26,7 @@ from app.domain.events import (
 from app.infrastructure.document.document_processor_adapter import (
     DocumentProcessorHttpAdapter,
 )
+from app.infrastructure.llm.document_tools import DOCUMENT_TOOL_ACTIVITY_LABELS
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 from app.infrastructure.llm.tool_executor import ToolExecutor
 from app.infrastructure.storage.bucket_manager_adapter import (
@@ -84,6 +85,21 @@ async def test_agent_stream_chat_basic_flow():
 
     tokens = [e.token for e in emitted_events if isinstance(e, StreamTokenEvent)]
     assert "".join(tokens) == greeting
+
+
+def test_adapter_rejects_tools_without_activity_labels():
+    """Every bound tool must declare its activity labels."""
+    tool = MagicMock()
+    tool.name = "convert_docx_to_pdf"
+    with pytest.raises(ValueError, match="convert_docx_to_pdf"):
+        LangChainChatAdapter(model=MagicMock(), tools=[tool])
+
+
+def test_document_tool_activity_labels_read_naturally():
+    """Verify document tools expose present-progressive and past-tense labels."""
+    labels = DOCUMENT_TOOL_ACTIVITY_LABELS["convert_pdf_to_docx"]
+    assert labels.in_progress == "Converting PDF to DOCX..."
+    assert labels.completed == "Converted PDF to DOCX"
 
 
 def test_history_and_prompt_formatting_helpers():
