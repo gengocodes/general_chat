@@ -12,8 +12,6 @@ GenChat is a cloud-native AI agent monorepo built with **Strict Clean Architectu
 - **Backend Engineering Guide:** [`backend/README.md`](backend/README.md)
 - **Bucket-Manager Service Guide:** [`bucket-manager/README.md`](bucket-manager/README.md)
 - **Document-Processor Service Guide:** [`document-processor/README.md`](document-processor/README.md)
-- **Engineering Standards & Architecture Rules:** [`AGENTS.md`](AGENTS.md)
-
 ---
 
 ## Repository Structure
@@ -63,7 +61,6 @@ genchat/
 │   │   └── shared/                # Shared SSE/HTTP API client, UI primitives, and utilities
 │   └── package.json
 ├── docker-compose.yml             # Local multi-container orchestration (backend + bucket-manager + document-processor)
-├── AGENTS.md                      # Non-negotiable engineering & architectural rules
 └── .pylintrc                      # Root linter configuration
 ```
 
@@ -120,6 +117,7 @@ Dedicated internal microservice isolating heavy document conversion dependencies
 - **State Management:** Zustand store (`features/chat/store/chat.store.ts`) tracking messages, uploaded file keys, active tool executions, and thought-duration timers.
 - **SSE Client:** Custom `ReadableStream` chunk parser (`shared/api/stream.ts`) handling incremental token and activity events over `POST /api/chat/stream`.
 - **24-Hour Retention Notice:** Clearly informs users in the attachment tray and input footer that uploaded and converted files are automatically removed after 24 hours.
+- **Iframe Embedding Protection:** Enforces `Content-Security-Policy: frame-ancestors 'self' ...` (and `X-Frame-Options: SAMEORIGIN` when no external domains are configured) via `ALLOWED_DOMAINS` in `frontend/next.config.ts`.
 
 ---
 

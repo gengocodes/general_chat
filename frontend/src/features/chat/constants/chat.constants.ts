@@ -10,28 +10,28 @@ export const FILE_INPUT_ACCEPT =
 export const PROMPT_CATEGORIES: readonly PromptCategory[] = [
   {
     id: "capabilities",
-    label: "Gengo's capabilities",
+    label: "Explore capabilities",
     icon: "sparkles",
     items: [
       {
         label: "Explore what Gengo can do",
         prompt:
-          "Hi Gengo! Can you give me an overview of your capabilities, the tools you have access to, and how you can help me?",
+          "Hi Gengo! Can you give me an overview of what you can help me with, including document workflows, writing, and coding?",
       },
       {
-        label: "Understand Gengo's microservice architecture",
+        label: "Document conversion & file processing",
         prompt:
-          "How is Gengo architected behind the scenes, and how do your chat, storage, and document services work together?",
+          "What kinds of document tasks and file conversions can you perform when I attach files to our conversation?",
       },
       {
-        label: "Learn how file privacy and 24-hour auto-deletion work",
+        label: "Code review & technical problem solving",
         prompt:
-          "How does Gengo handle uploaded files, security, and the 24-hour automatic retention policy?",
+          "How can you assist me with software engineering, architecture brainstorming, debugging, and code reviews?",
       },
       {
-        label: "See examples of tasks we can collaborate on",
+        label: "Drafting, editing & structured writing",
         prompt:
-          "What are the most impactful engineering, writing, or document workflows we can tackle together right now?",
+          "Help me draft, proofread, or refine documents with clear structure, professional tone, and actionable takeaways.",
       },
     ],
   },
