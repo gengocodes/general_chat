@@ -271,20 +271,25 @@ jobs:
           DOCUMENT_PROCESSOR_RESULT: ${{ needs.document-processor.result }}
           FRONTEND_RESULT: ${{ needs.frontend.result }}
         run: |
-          declare -A results=(
-            [changes]="$CHANGES_RESULT"
+          declare -A service_results=(
             [backend]="$BACKEND_RESULT"
             [bucket-manager]="$BUCKET_MANAGER_RESULT"
             [document-processor]="$DOCUMENT_PROCESSOR_RESULT"
             [frontend]="$FRONTEND_RESULT"
           )
 
-          for job in "${!results[@]}"; do
-            result="${results[$job]}"
+          echo "changes: $CHANGES_RESULT"
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "::error::changes job must succeed (got '$CHANGES_RESULT')."
+            exit 1
+          fi
+
+          for job in "${!service_results[@]}"; do
+            result="${service_results[$job]}"
             echo "$job: $result"
 
-            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
-              echo "::error::$job failed or was cancelled."
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::$job did not pass (got '$result')."
               exit 1
             fi
           done
