@@ -264,20 +264,34 @@ jobs:
     timeout-minutes: 3
     steps:
       - name: Evaluate pipeline results
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          BUCKET_MANAGER_RESULT: ${{ needs.bucket-manager.result }}
+          DOCUMENT_PROCESSOR_RESULT: ${{ needs.document-processor.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
         run: |
-          echo "Changes job result:            ${{ needs.changes.result }}"
-          echo "Backend job result:            ${{ needs.backend.result }}"
-          echo "Bucket-Manager job result:     ${{ needs.bucket-manager.result }}"
-          echo "Document-Processor job result: ${{ needs.document-processor.result }}"
-          echo "Frontend job result:           ${{ needs.frontend.result }}"
+          declare -A service_results=(
+            [backend]="$BACKEND_RESULT"
+            [bucket-manager]="$BUCKET_MANAGER_RESULT"
+            [document-processor]="$DOCUMENT_PROCESSOR_RESULT"
+            [frontend]="$FRONTEND_RESULT"
+          )
 
-          results="${{ join(needs.*.result, ' ') }}"
-          echo "Aggregated results string: $results"
-
-          # Fail if any job failed or was cancelled
-          if echo "$results" | grep -E -q '(failure|cancelled)'; then
-            echo "::error::One or more CI checks failed or were cancelled. Blocking merge/deployment."
+          echo "changes: $CHANGES_RESULT"
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "::error::changes job must succeed (got '$CHANGES_RESULT')."
             exit 1
           fi
 
-          echo "All targeted CI checks succeeded (skipped services were safely bypassed)."
+          for job in "${!service_results[@]}"; do
+            result="${service_results[$job]}"
+            echo "$job: $result"
+
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::$job did not pass (got '$result')."
+              exit 1
+            fi
+          done
+
+          echo "All required CI jobs passed or were safely skipped."
