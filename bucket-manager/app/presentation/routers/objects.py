@@ -9,12 +9,10 @@ from app.domain.errors import (
     ObjectSizeLimitExceededError,
     StorageProviderError,
 )
-from app.application.use_cases.object_ops import (
-    DeleteObjectUseCase,
-    DownloadObjectBytesUseCase,
-    GetPresignedUrlUseCase,
-    UploadObjectUseCase,
-)
+from app.application.use_cases.delete_object import DeleteObjectUseCase
+from app.application.use_cases.download_object_bytes import DownloadObjectBytesUseCase
+from app.application.use_cases.get_presigned_url import GetPresignedUrlUseCase
+from app.application.use_cases.upload_object import UploadObjectUseCase
 from app.presentation.dependencies import (
     get_delete_object_use_case,
     get_download_bytes_use_case,

@@ -11,10 +11,8 @@ from app.domain.errors import (
     FileSizeLimitExceededError,
     InvalidFileError,
 )
-from app.application.use_cases.file import (
-    UploadFileUseCase,
-    GetFileDownloadUseCase,
-)
+from app.application.use_cases.upload_file import UploadFileUseCase
+from app.application.use_cases.get_file_download import GetFileDownloadUseCase
 from app.presentation.schemas.file import FileUploadResponse
 from app.presentation.dependencies import (
     download_rate_limiter,

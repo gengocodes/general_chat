@@ -6,10 +6,21 @@ from collections.abc import Callable
 import logging
 from langchain_core.tools import tool, BaseTool
 from app.domain.entities.file import StoredFile
-from app.domain.tools import AgentToolResult, DocumentConvertResult
+from app.domain.tools import AgentToolResult, DocumentConvertResult, ToolActivityLabels
 from app.application.ports.document_processor_port import DocumentProcessorPort
 
 logger = logging.getLogger(__name__)
+
+DOCUMENT_TOOL_ACTIVITY_LABELS: dict[str, ToolActivityLabels] = {
+    "convert_docx_to_pdf": ToolActivityLabels(
+        in_progress="Converting DOCX to PDF...",
+        completed="Converted DOCX to PDF",
+    ),
+    "convert_pdf_to_docx": ToolActivityLabels(
+        in_progress="Converting PDF to DOCX...",
+        completed="Converted PDF to DOCX",
+    ),
+}
 
 
 def _execute_conversion(

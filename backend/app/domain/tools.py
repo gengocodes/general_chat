@@ -1,9 +1,18 @@
 """Domain models for agent tool execution results."""
 
+from dataclasses import dataclass
 from typing import Generic, TypeVar
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class ToolActivityLabels:
+    """User-facing activity timeline labels for a single agent tool."""
+
+    in_progress: str
+    completed: str
 
 
 class AgentToolResult(BaseModel, Generic[T]):

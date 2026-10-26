@@ -1,10 +1,8 @@
-"""Use cases for uploading, downloading, presigning, and deleting bucket objects."""
+"""Use case for validating, key-prefixing, and uploading bucket objects."""
 
 from typing import BinaryIO
 from app.domain.entities.object_item import (
     MAX_UPLOAD_SIZE_BYTES,
-    ObjectContent,
-    PresignedDownload,
     StoredObject,
     generate_object_key,
     sanitize_filename,
@@ -62,40 +60,3 @@ class UploadObjectUseCase:  # pylint: disable=too-few-public-methods
             content=content,
             content_type=content_type,
         )
-
-
-class GetPresignedUrlUseCase:  # pylint: disable=too-few-public-methods
-    """Generate a short-lived presigned download URL for a stored object."""
-
-    def __init__(self, storage: ObjectStoragePort):
-        self._storage = storage
-
-    def execute(self, object_key: str) -> PresignedDownload:
-        """Sanitize object_key and return a PresignedDownload value object."""
-        clean_key = sanitize_filename(object_key)
-        return self._storage.create_presigned_download(clean_key)
-
-
-class DownloadObjectBytesUseCase:  # pylint: disable=too-few-public-methods
-    """Fetch raw bytes of a stored object for internal service processing."""
-
-    def __init__(self, storage: ObjectStoragePort):
-        self._storage = storage
-
-    def execute(self, object_key: str) -> ObjectContent:
-        """Sanitize object_key and return an ObjectContent value object."""
-        clean_key = sanitize_filename(object_key)
-        raw_bytes = self._storage.get_object_bytes(clean_key)
-        return ObjectContent(object_key=clean_key, content=raw_bytes)
-
-
-class DeleteObjectUseCase:  # pylint: disable=too-few-public-methods
-    """Delete a stored object from the bucket."""
-
-    def __init__(self, storage: ObjectStoragePort):
-        self._storage = storage
-
-    def execute(self, object_key: str) -> None:
-        """Sanitize object_key and remove it from the bucket."""
-        clean_key = sanitize_filename(object_key)
-        self._storage.delete_object(clean_key)

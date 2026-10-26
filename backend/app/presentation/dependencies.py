@@ -6,10 +6,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
 from app.application.use_cases.chat import StreamChatMessageUseCase
-from app.application.use_cases.file import (
-    UploadFileUseCase,
-    GetFileDownloadUseCase,
-)
+from app.application.use_cases.upload_file import UploadFileUseCase
+from app.application.use_cases.get_file_download import GetFileDownloadUseCase
 from app.infrastructure.cloud_run_auth import build_service_auth
 from app.infrastructure.storage.bucket_manager_adapter import (
     BucketManagerStorageAdapter,
@@ -17,7 +15,10 @@ from app.infrastructure.storage.bucket_manager_adapter import (
 from app.infrastructure.document.document_processor_adapter import (
     DocumentProcessorHttpAdapter,
 )
-from app.infrastructure.llm.document_tools import create_document_tools
+from app.infrastructure.llm.document_tools import (
+    DOCUMENT_TOOL_ACTIVITY_LABELS,
+    create_document_tools,
+)
 from app.infrastructure.llm.langchain_adapter import LangChainChatAdapter
 from app.presentation.rate_limit import SlidingWindowRateLimiter
 
@@ -58,7 +59,11 @@ def get_chat_model_adapter() -> LangChainChatAdapter:
         model=settings.GEMINI_MODEL,
         google_api_key=settings.GEMINI_API_KEY,
     )
-    return LangChainChatAdapter(model=model, tools=_document_tools)
+    return LangChainChatAdapter(
+        model=model,
+        tools=_document_tools,
+        activity_labels=DOCUMENT_TOOL_ACTIVITY_LABELS,
+    )
 
 
 def get_stream_chat_use_case() -> StreamChatMessageUseCase:
