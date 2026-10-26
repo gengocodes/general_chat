@@ -6,12 +6,10 @@ from fastapi import Depends, Header, HTTPException, status
 
 from app.config import settings
 from app.application.ports.object_storage_port import ObjectStoragePort
-from app.application.use_cases.object_ops import (
-    DeleteObjectUseCase,
-    DownloadObjectBytesUseCase,
-    GetPresignedUrlUseCase,
-    UploadObjectUseCase,
-)
+from app.application.use_cases.delete_object import DeleteObjectUseCase
+from app.application.use_cases.download_object_bytes import DownloadObjectBytesUseCase
+from app.application.use_cases.get_presigned_url import GetPresignedUrlUseCase
+from app.application.use_cases.upload_object import UploadObjectUseCase
 from app.infrastructure.storage.r2_storage_adapter import R2StorageAdapter
 
 

@@ -21,7 +21,7 @@ flowchart TB
     subgraph Application["Application Layer (app/application)"]
         direction LR
         StreamUC["use_cases/chat.py\nStreamChatMessageUseCase"]
-        FileUC["use_cases/file.py\nUploadFileUseCase\nGetFileDownloadUseCase"]
+        FileUC["use_cases/upload_file.py\nUploadFileUseCase\nuse_cases/get_file_download.py\nGetFileDownloadUseCase"]
         Prompts["prompts/agent.py"]
         subgraph Ports["Outbound Ports (app/application/ports)"]
             ChatPort["ChatModelPort"]

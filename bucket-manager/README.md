@@ -21,7 +21,7 @@ flowchart TB
 
     subgraph Application["Application Layer (app/application)"]
         direction LR
-        UseCases["use_cases/object_ops.py\nUploadObjectUseCase\nGetPresignedUrlUseCase\nDownloadObjectBytesUseCase\nDeleteObjectUseCase"]
+        UseCases["use_cases/ (one file per use case)\nUploadObjectUseCase\nGetPresignedUrlUseCase\nDownloadObjectBytesUseCase\nDeleteObjectUseCase"]
         Port["ports/object_storage_port.py\nObjectStoragePort (ABC)"]
     end
 
@@ -67,7 +67,7 @@ flowchart TB
    - Uploaded filenames are sanitized via `sanitize_filename()` and prefixed with a 12-character UUID hex (`generate_object_key()` -> `{uuid12}_{clean_filename}`).
    - Only `.pdf` and `.docx` extensions are accepted (`ALLOWED_OBJECT_EXTENSIONS`); others return HTTP `400`.
 3. **10 MB Streaming Upload Guard (`MAX_UPLOAD_SIZE_BYTES`):**
-   - `read_bounded_stream()` in `app/application/use_cases/object_ops.py` reads incoming uploads in 64 KB chunks and immediately aborts with HTTP `413 Content Too Large` if the stream exceeds `10,485,760` bytes.
+   - `read_bounded_stream()` in `app/application/use_cases/upload_object.py` reads incoming uploads in 64 KB chunks and immediately aborts with HTTP `413 Content Too Large` if the stream exceeds `10,485,760` bytes.
 4. **Short-Lived Presigned Download URLs:**
    - Downloads use S3 Signature Version 4 (`AWS4-HMAC-SHA256`) presigned GET URLs (`PRESIGNED_URL_EXPIRY_SECONDS=900` / 15 minutes by default) with `response-content-disposition=attachment`.
 5. **24-Hour Auto-Deletion (`FILE_RETENTION_HOURS=24`):**

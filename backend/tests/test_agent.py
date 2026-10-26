@@ -36,10 +36,8 @@ from app.application.use_cases.chat import (
     prepare_conversation_history,
     format_user_prompt,
 )
-from app.application.use_cases.file import (
-    UploadFileUseCase,
-    GetFileDownloadUseCase,
-)
+from app.application.use_cases.upload_file import UploadFileUseCase
+from app.application.use_cases.get_file_download import GetFileDownloadUseCase
 
 
 async def _async_gen(items):

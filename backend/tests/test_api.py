@@ -15,7 +15,7 @@ from app.presentation.dependencies import get_stream_chat_use_case
 from app.presentation.routers.upload import upload_file
 from app.application.ports.file_storage_port import FileStoragePort
 from app.application.use_cases.chat import StreamChatMessageUseCase
-from app.application.use_cases.file import UploadFileUseCase
+from app.application.use_cases.upload_file import UploadFileUseCase
 from app.domain.events import StreamTokenEvent, StreamCompleteEvent
 from app.infrastructure.storage.bucket_manager_adapter import (
     BucketManagerStorageAdapter,

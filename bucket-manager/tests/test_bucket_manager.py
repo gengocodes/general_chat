@@ -12,12 +12,10 @@ from app.domain.errors import (
     ObjectNotFoundError,
     ObjectSizeLimitExceededError,
 )
-from app.application.use_cases.object_ops import (
-    DeleteObjectUseCase,
-    DownloadObjectBytesUseCase,
-    GetPresignedUrlUseCase,
-    UploadObjectUseCase,
-)
+from app.application.use_cases.delete_object import DeleteObjectUseCase
+from app.application.use_cases.download_object_bytes import DownloadObjectBytesUseCase
+from app.application.use_cases.get_presigned_url import GetPresignedUrlUseCase
+from app.application.use_cases.upload_object import UploadObjectUseCase
 from app.infrastructure.storage.r2_storage_adapter import R2StorageAdapter
 from app.presentation.dependencies import get_storage_adapter
 from app.main import app
