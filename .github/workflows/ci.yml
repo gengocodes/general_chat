@@ -89,11 +89,11 @@ jobs:
 
       - name: Run Pylint
         run: |
-          python -m pylint --fail-under=10.00 app tests
+          python -m pylint --fail-under=10.00 app tests migrations
 
       - name: Run Mypy
         run: |
-          python -m mypy app tests
+          python -m mypy app tests migrations
 
       - name: Run Pytest
         env:
@@ -103,6 +103,10 @@ jobs:
           BUCKET_MANAGER_URL: "http://bucket-manager.test:8001"
           DOCUMENT_PROCESSOR_URL: "http://document-processor.test:8002"
           INTERNAL_API_KEY: "test-internal-api-key"
+          DATABASE_URL: "postgresql+psycopg://test:test@localhost:5432/test"
+          GOOGLE_CLIENT_ID: "test-client-id.apps.googleusercontent.com"
+          JWT_SECRET: "test-jwt-secret-that-is-at-least-32-chars"
+          COOKIE_SECURE: "false"
           PYTHONPATH: "."
         run: |
           python -m pytest tests -v
@@ -249,6 +253,8 @@ jobs:
         run: npm run lint
 
       - name: Run Next.js production build
+        env:
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: "test-client-id.apps.googleusercontent.com"
         run: npm run build
 
   ci-gatekeeper:
