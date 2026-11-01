@@ -3,10 +3,7 @@
 import React from "react";
 import { User } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-
-interface UserAvatarProps {
-  className?: string;
-}
+import { UserAvatarProps } from "../types/chat.types";
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({ className }) => (
   <div

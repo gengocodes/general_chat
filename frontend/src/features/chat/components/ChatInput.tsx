@@ -8,34 +8,28 @@ import React, {
   ChangeEvent,
 } from "react";
 import { ArrowUp, Square, Paperclip, Clock } from "lucide-react";
+import { useAuthStore } from "@/features/auth/store/auth.store";
+import { LoginRequiredApiError } from "@/shared/api/stream";
 import { validateUploadFile } from "@/shared/lib/file-utils";
 import { Button } from "@/shared/ui/button";
 import { FileAttachmentCard } from "@/shared/ui/file-card";
 import {
   ALLOWED_FILE_EXTENSIONS,
+  DEFAULT_ATTACHED_FILE_MESSAGE,
   FILE_INPUT_ACCEPT,
+  FILE_UPLOAD_FALLBACK_ERROR_MESSAGE,
   MAX_UPLOAD_SIZE_BYTES,
 } from "../constants/chat.constants";
 import { chatService } from "../services/chat.service";
-import { AttachedFileItem, FileValidationResult } from "../types/chat.types";
-
-interface ChatInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  onSend: (message: string) => void;
-  onCancel: () => void;
-  isSending: boolean;
-  attachedFiles: AttachedFileItem[];
-  onAddFile: (file: AttachedFileItem) => void;
-  onRemoveFile: (objectKey: string) => void;
-  showDisclaimer?: boolean;
-}
+import {
+  ChatInputProps,
+  FileValidationResult,
+} from "../types/chat.types";
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   value,
   onChange,
-  placeholder = "Ask Gengo",
+  placeholder,
   onSend,
   onCancel,
   isSending,
@@ -43,7 +37,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onAddFile,
   onRemoveFile,
   showDisclaimer = true,
+  disabled,
 }) => {
+  const { setRequiresLogin } = useAuthStore();
   const [uploadingFilename, setUploadingFilename] = useState<string | null>(
     null,
   );
@@ -92,8 +88,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         downloadUrl: data.download_url,
       });
     } catch (err: unknown) {
+      if (err instanceof LoginRequiredApiError) {
+        setRequiresLogin(true);
+        return;
+      }
       const message =
-        err instanceof Error ? err.message : "Failed to upload file.";
+        err instanceof Error ? err.message : FILE_UPLOAD_FALLBACK_ERROR_MESSAGE;
       setUploadError(message);
     } finally {
       setUploadingFilename(null);
@@ -105,6 +105,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSend = () => {
     if (
+      disabled ||
       (!value.trim() && attachedFiles.length === 0) ||
       isSending ||
       isUploading
@@ -112,7 +113,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return;
     }
     setUploadError(null);
-    onSend(value || "Please analyze or convert the attached file.");
+    onSend(value || DEFAULT_ATTACHED_FILE_MESSAGE);
     onChange("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -183,8 +184,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          disabled={disabled}
           rows={1}
-          className="w-full min-h-[56px] max-h-48 resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/65 outline-none focus:outline-none focus:ring-0"
+          className="w-full min-h-[56px] max-h-48 resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[15px] leading-relaxed text-foreground placeholder:text-muted-foreground/65 outline-none focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
         />
 
         <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
@@ -194,7 +196,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               size="sm"
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isSending || isUploading}
+              disabled={disabled || isSending || isUploading}
               title="Attach PDF or DOCX document (max 10 MB)"
               className="h-8 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer gap-1.5"
             >
@@ -220,7 +222,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 size="icon"
                 onClick={handleSend}
                 disabled={
-                  (!value.trim() && attachedFiles.length === 0) || isUploading
+                  disabled ||
+                  (!value.trim() && attachedFiles.length === 0) ||
+                  isUploading
                 }
                 title="Send message"
                 className="size-8 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 disabled:bg-muted disabled:text-muted-foreground transition-all cursor-pointer shadow-2xs"

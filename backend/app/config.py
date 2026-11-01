@@ -41,6 +41,43 @@ class Settings(BaseSettings):
             "--no-allow-unauthenticated)"
         ),
     )
+    DATABASE_URL: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "SQLAlchemy URL used by the application at runtime "
+            "(Neon pooled connection string, postgresql+psycopg://...)"
+        ),
+    )
+    GOOGLE_CLIENT_ID: str = Field(
+        ...,
+        min_length=1,
+        description="Google OAuth Web client ID used as the ID token audience",
+    )
+    JWT_SECRET: str = Field(
+        ...,
+        min_length=32,
+        description="HMAC secret (at least 32 characters) signing session and guest tokens",
+    )
+    SESSION_LIFETIME_DAYS: int = Field(
+        default=7,
+        ge=1,
+        description="Lifetime of a signed-in session cookie in days",
+    )
+    FREE_MESSAGE_LIMIT: int = Field(
+        default=2,
+        ge=1,
+        description="Chat messages a guest may send before Google sign-in is required",
+    )
+    COOKIE_SECURE: bool = Field(
+        default=True,
+        description="Mark auth cookies Secure (set to false only for local HTTP development)",
+    )
+    AUTH_RATE_LIMIT_PER_MINUTE: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum auth requests allowed per client IP per minute",
+    )
     CHAT_RATE_LIMIT_PER_MINUTE: int = Field(
         default=20,
         ge=1,

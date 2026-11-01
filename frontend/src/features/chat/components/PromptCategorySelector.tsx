@@ -11,12 +11,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { PROMPT_CATEGORIES } from "../constants/chat.constants";
-import { PromptCategory, PromptCategoryIcon } from "../types/chat.types";
-
-interface PromptCategorySelectorProps {
-  onHoverPrompt: (prompt: string | null) => void;
-  onSelectPrompt: (prompt: string) => void;
-}
+import {
+  PromptCategory,
+  PromptCategoryIcon,
+  PromptCategorySelectorProps,
+} from "../types/chat.types";
 
 const CATEGORY_ICONS: Record<PromptCategoryIcon, React.ReactNode> = {
   sparkles: <Sparkles className="size-3.5 text-muted-foreground" />,

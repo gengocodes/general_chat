@@ -3,28 +3,21 @@ import {
   AgentActivity,
   AttachedFileItem,
   ChatMessageItem,
+  ChatStoreState,
 } from "../types/chat.types";
 
-interface ChatState {
-  messages: ChatMessageItem[];
-  attachedFiles: AttachedFileItem[];
-  addMessage: (msg: ChatMessageItem) => void;
-  appendMessageContent: (id: string, chunk: string) => void;
-  updateMessageActivity: (msgId: string, activity: AgentActivity) => void;
-  setExecutionTime: (msgId: string, durationSeconds: number) => void;
-  finalizeMessageActivities: (msgId: string) => void;
-  addAttachedFile: (file: AttachedFileItem) => void;
-  removeAttachedFile: (objectKey: string) => void;
-  clearAttachedFiles: () => void;
-}
-
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatStoreState>((set) => ({
   messages: [],
   attachedFiles: [],
 
   addMessage: (msg: ChatMessageItem) =>
     set((state) => ({
       messages: [...state.messages, msg],
+    })),
+
+  removeMessagesByIds: (ids: string[]) =>
+    set((state) => ({
+      messages: state.messages.filter((msg) => !ids.includes(msg.id)),
     })),
 
   appendMessageContent: (id: string, chunk: string) =>

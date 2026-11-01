@@ -5,15 +5,23 @@ Chat endpoint with SSE streaming for GenChat AI Agent
 from collections.abc import AsyncGenerator, Sequence
 import logging
 from fastapi import APIRouter, Depends
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 
 from app.domain.entities.message import ChatMessage
+from app.domain.entities.principal import ResolvedPrincipal
 from app.domain.events import AgentStreamEvent, StreamErrorEvent
 from app.application.use_cases.chat import StreamChatMessageUseCase
+from app.application.use_cases.chat_access import ChatAccessUseCase
+from app.presentation.cookies import set_guest_cookie
 from app.presentation.schemas.chat import ChatHistoryMessage, ChatRequest
 from app.presentation.dependencies import (
     chat_rate_limiter,
+    consume_free_message,
+    get_chat_access_use_case,
+    get_resolved_principal,
     get_stream_chat_use_case,
+    verify_request_origin,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,13 +44,16 @@ def _format_sse_event(event: AgentStreamEvent) -> str:
 @router.post(
     "/stream",
     response_class=StreamingResponse,
-    dependencies=[Depends(chat_rate_limiter)],
+    dependencies=[Depends(chat_rate_limiter), Depends(verify_request_origin)],
 )
 async def chat_stream(
     request: ChatRequest,
+    resolved: ResolvedPrincipal = Depends(get_resolved_principal),
+    access: ChatAccessUseCase = Depends(get_chat_access_use_case),
     use_case: StreamChatMessageUseCase = Depends(get_stream_chat_use_case),
 ) -> StreamingResponse:
     """Server-Sent Events (SSE) streaming chat endpoint."""
+    await run_in_threadpool(consume_free_message, resolved, access)
     domain_history = _to_domain_history(request.history)
 
     async def event_generator() -> AsyncGenerator[str, None]:
@@ -60,12 +71,15 @@ async def chat_stream(
             )
             yield _format_sse_event(err_event)
 
-    return StreamingResponse(
+    streaming_response = StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
     )
+    if resolved.new_guest_token is not None:
+        set_guest_cookie(streaming_response, resolved.new_guest_token)
+    return streaming_response

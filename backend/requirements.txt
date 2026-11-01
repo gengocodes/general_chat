@@ -19,7 +19,16 @@ python-multipart>=0.0.9
 pytest>=8.0.0
 anyio>=4.0.0
 
-# Google Cloud Run service-to-service auth (ID token)
+# Google Cloud Run service-to-service auth (ID token) and Google Sign-In ID token verification
 google-auth>=2.30.0
 requests>=2.31.0
+
+# Persistence (Neon PostgreSQL) and schema migrations
+sqlalchemy>=2.0.30
+alembic>=1.13.0
+psycopg[binary]>=3.2.0
+
+# Session tokens
+PyJWT>=2.8.0
 mypy>=1.10.0
+pylint>=3.2.0
