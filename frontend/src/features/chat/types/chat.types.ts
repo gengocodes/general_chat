@@ -94,6 +94,7 @@ export type AgentStreamEvent =
 export type StreamEventCallback = (event: AgentStreamEvent) => void;
 
 export interface ChatServiceContract {
+  checkHealth(): Promise<void>;
   streamMessage(
     payload: ChatRequest,
     onEvent: StreamEventCallback,

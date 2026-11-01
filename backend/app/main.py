@@ -47,6 +47,7 @@ app.include_router(upload.router)
 
 
 @app.get("/health", response_model=HealthResponse)
+@app.get("/api/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Health check endpoint returning application status."""
     return HealthResponse(status="ok", app="GenChat")

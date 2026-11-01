@@ -51,10 +51,11 @@ class _DummyStorageAdapter(FileStoragePort):
 
 
 def test_health_check():
-    """Verify health endpoint returns status ok and app name."""
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok", "app": "GenChat"}
+    """Verify health endpoints (/health and /api/health) return status ok and app name."""
+    for path in ("/health", "/api/health"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok", "app": "GenChat"}
 
 
 def test_upload_and_download_flow(monkeypatch):
