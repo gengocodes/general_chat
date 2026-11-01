@@ -289,9 +289,18 @@ Create Pydantic request/response schemas in `app/presentation/schemas/`, call th
 - **CSRF Defense:** State-changing cookie-authenticated endpoints (`/api/auth/google`, `/api/auth/logout`, `/api/chat/stream`, `/api/files/upload`) enforce `SameSite=Lax` plus `verify_request_origin` against `FRONTEND_ORIGIN`.
 
 ### Alembic Database Changelog (`backend/migrations/`)
-- Runtime queries use `DATABASE_URL` (pooled Neon connection string, `prepare_threshold=None` for PgBouncer compatibility).
+- Runtime queries use `DATABASE_URL` (pooled Neon connection string in production, `prepare_threshold=None` for PgBouncer compatibility).
 - Schema migrations use `DATABASE_MIGRATION_URL` (direct non-pooler connection string).
-- Commands (run from `backend/`):
+- **Local Development (`genchat-gengo` on `localhost:5433`):**
+  ```bash
+  # Via Docker Compose (when backend container is running)
+  docker compose exec backend alembic upgrade head
+
+  # Or directly from host via backend/.venv (when postgres container is running)
+  DATABASE_MIGRATION_URL=postgresql+psycopg://genchat:genchat_local_dev@localhost:5433/genchat-gengo \
+    backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
+  ```
+- **Common Alembic Commands (from `backend/`):**
   ```bash
   # Apply all pending migrations
   alembic upgrade head
@@ -302,7 +311,7 @@ Create Pydantic request/response schemas in `app/presentation/schemas/`, call th
   # Create a new migration revision
   alembic revision -m "describe_change" --autogenerate
   ```
-- On Google Cloud Run, run `alembic upgrade head` as a pre-deploy job rather than at container startup.
+- **Production CI/CD Auto-Migration:** On every push/merge to `main` that touches `backend/`, `.github/workflows/ci.yml` automatically runs `alembic upgrade head` against `secrets.DATABASE_MIGRATION_URL` (stored in GitHub Actions Repository Secrets) after Pylint, Mypy, and Pytest succeed. The Google Cloud Run `backend` service only requires `DATABASE_URL` (the pooled URL).
 
 ---
 
@@ -331,5 +340,5 @@ Before submitting any backend change, run both commands from the repository root
 PYTHONPATH=backend backend/.venv/bin/python -m pytest backend/tests -v
 
 # 2. Run Pylint (must score 10.00/10 with zero complexity suppressions)
-backend/.venv/bin/python -m pylint backend/app backend/tests
+backend/.venv/bin/python -m pylint backend/app backend/tests backend/migrations
 ```

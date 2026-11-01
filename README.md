@@ -142,15 +142,30 @@ cp backend/.env.example backend/.env
 - **Configure `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (same value as `GOOGLE_CLIENT_ID`) in `frontend/.env`.**
 - **Database (`DATABASE_URL` & `DATABASE_MIGRATION_URL`):** Local `docker compose` automatically overrides both with the bundled `postgres:18` service (`genchat-gengo` database), so production Neon URLs in `backend/.env` are never touched during local development.
 
-### 2. Start All Backend Microservices & Run Migrations
+### 2. Start Local PostgreSQL 18 & Backend Microservices and Run Migrations
 
+#### Option 1: Full Docker Compose Stack (Postgres + All 3 Backend Services)
 ```bash
+# Start postgres:18 (port 5433, database: genchat-gengo) and all backend services
 docker compose up --build -d
+
+# Apply Alembic migrations (creates users and guest_usage tables in local Postgres)
 docker compose exec backend alembic upgrade head
 ```
 
+#### Option 2: Local Python `.venv` + Docker PostgreSQL 18
+If you run `uvicorn` or `pytest` directly from `backend/.venv` on your machine:
+```bash
+# 1. Start only the local PostgreSQL 18 container on localhost:5433
+docker compose up -d postgres
+
+# 2. Apply Alembic migrations from your host machine to localhost:5433/genchat-gengo
+DATABASE_MIGRATION_URL=postgresql+psycopg://genchat:genchat_local_dev@localhost:5433/genchat-gengo \
+  backend/.venv/bin/alembic -c backend/alembic.ini upgrade head
+```
+
 - **Backend API:** `http://localhost:8000` (`GET /health`, `GET /docs`)
-- **Local PostgreSQL 18:** `localhost:5433` (`genchat-gengo`)
+- **Local PostgreSQL 18:** `localhost:5433` (database: `genchat-gengo`, user: `genchat`, password: `genchat_local_dev`)
 - **Bucket-Manager API (Internal):** `http://localhost:8001` (`GET /health`)
 - **Document-Processor API (Internal):** `http://localhost:8002` (`GET /health`)
 
@@ -177,7 +192,7 @@ PYTHONPATH=document-processor backend/.venv/bin/python -m pytest document-proces
 PYTHONPATH=backend backend/.venv/bin/python -m pytest backend/tests -v
 
 # 2. Pylint static analysis (all 3 services must score 10.00/10)
-backend/.venv/bin/python -m pylint backend/app backend/tests
+backend/.venv/bin/python -m pylint backend/app backend/tests backend/migrations
 backend/.venv/bin/python -m pylint --rcfile=bucket-manager/.pylintrc bucket-manager/app bucket-manager/tests
 backend/.venv/bin/python -m pylint --rcfile=document-processor/.pylintrc document-processor/app document-processor/tests
 
