@@ -19,3 +19,6 @@ export const GOOGLE_SIGN_IN_ERROR_MESSAGE =
 
 export const AUTH_LOGOUT_ERROR_MESSAGE =
   "Unable to sign out.";
+
+export const SIGN_OUT_LABEL = "Sign out";
+export const SIGN_OUT_BUTTON_TITLE = "Sign out of your Google account";

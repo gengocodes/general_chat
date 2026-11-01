@@ -1,5 +1,6 @@
 import { apiStream, parseErrorResponse } from "@/shared/api/stream";
 import {
+  BACKEND_HEALTH_ENDPOINT,
   CHAT_STREAM_ENDPOINT,
   FILE_UPLOAD_ENDPOINT,
   FILE_UPLOAD_ERROR_MESSAGE,
@@ -13,6 +14,17 @@ import {
 } from "../types/chat.types";
 
 export const chatService: ChatServiceContract = {
+  async checkHealth(): Promise<void> {
+    try {
+      await fetch(BACKEND_HEALTH_ENDPOINT, {
+        method: "GET",
+        cache: "no-store",
+      });
+    } catch {
+      // Non-fatal: warm-up ping should never block the UI.
+    }
+  },
+
   async streamMessage(
     payload: ChatRequest,
     onEvent: StreamEventCallback,

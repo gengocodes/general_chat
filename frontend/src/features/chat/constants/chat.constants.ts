@@ -5,6 +5,7 @@ export const CHAT_INPUT_PLACEHOLDER = "Ask Gengo";
 export const LOGIN_REQUIRED_INPUT_PLACEHOLDER =
   "Sign in with Google to continue chatting";
 
+export const BACKEND_HEALTH_ENDPOINT = "/api/health";
 export const CHAT_STREAM_ENDPOINT = "/api/chat/stream";
 export const FILE_UPLOAD_ENDPOINT = "/api/files/upload";
 export const FILE_UPLOAD_ERROR_MESSAGE = "File upload failed.";

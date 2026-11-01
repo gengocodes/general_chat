@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { LoginRequiredNotice, useAuth } from "@/features/auth";
+import {
+  LoginRequiredNotice,
+  UserSessionBadge,
+  useAuth,
+} from "@/features/auth";
 import { GengoLogo } from "@/shared/ui/gengo-logo";
 import {
   CHAT_INPUT_PLACEHOLDER,
   LOGIN_REQUIRED_INPUT_PLACEHOLDER,
 } from "../constants/chat.constants";
 import { useChat } from "../hooks/useChat";
+import { chatService } from "../services/chat.service";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { PromptCategorySelector } from "./PromptCategorySelector";
@@ -24,14 +29,26 @@ export const ChatWindow: React.FC = () => {
     removeAttachedFile,
   } = useChat();
 
-  const { requiresLogin, refreshSession } = useAuth();
+  const { user, requiresLogin, refreshSession } = useAuth();
 
   const [inputValue, setInputValue] = useState("");
   const [hoveredPrompt, setHoveredPrompt] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    void chatService.checkHealth();
     void refreshSession();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void chatService.checkHealth();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [refreshSession]);
 
   useEffect(() => {
@@ -42,7 +59,13 @@ export const ChatWindow: React.FC = () => {
 
   if (isEmptyState) {
     return (
-      <div className="flex flex-col h-full w-full bg-background overflow-y-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-col h-full w-full bg-background overflow-y-auto px-4 sm:px-6 py-6 relative">
+        {user && (
+          <header className="w-full flex justify-end shrink-0 mb-2">
+            <UserSessionBadge />
+          </header>
+        )}
+
         <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto my-auto animate-in fade-in-50 duration-300">
           <div className="flex flex-col items-center text-center mb-7">
             <GengoLogo className="size-14 sm:size-16 mb-3.5 drop-shadow-xs" />
@@ -96,6 +119,12 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
+      {user && (
+        <header className="w-full px-3 md:px-6 pt-3 pb-1 flex justify-end shrink-0">
+          <UserSessionBadge />
+        </header>
+      )}
+
       <div className="flex-1 overflow-y-auto w-full px-3 md:px-6 py-4 md:py-6 scroll-smooth flex flex-col">
         <div className="max-w-3xl md:max-w-4xl mx-auto w-full space-y-6 flex-1 flex flex-col">
           {messages.map((msg) => {
