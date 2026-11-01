@@ -2,15 +2,13 @@
 
 import { useState, FC } from "react";
 import { Brain, CheckCircle2, ChevronRight } from "lucide-react";
-import { AgentActivity } from "../types/chat.types";
+import {
+  AgentActivity,
+  AgentExecutionTimelineProps,
+} from "../types/chat.types";
 import { Marker, MarkerIcon, MarkerContent } from "@/shared/ui/marker";
 import { Spinner } from "@/shared/ui/spinner";
 import { cn } from "@/shared/lib/utils";
-
-interface AgentExecutionTimelineProps {
-  activities?: AgentActivity[];
-  executionTimeSeconds?: number;
-}
 
 const renderActivityIcon = (activity: AgentActivity) => {
   if (activity.status === "completed") {

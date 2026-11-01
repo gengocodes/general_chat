@@ -5,17 +5,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Copy, Check } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-import { ChatMessageItem } from "../types/chat.types";
+import { ChatMessageProps } from "../types/chat.types";
 import { AgentAvatar } from "./AgentAvatar";
 import { UserAvatar } from "./UserAvatar";
 import { AgentExecutionTimeline } from "./AgentExecutionTimeline";
 import { MARKDOWN_COMPONENTS } from "./MarkdownComponents";
 import { ASSISTANT_NAME } from "../constants/chat.constants";
 import { FileAttachmentCard } from "@/shared/ui/file-card";
-
-interface ChatMessageProps {
-  message: ChatMessageItem;
-}
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.role === "user";

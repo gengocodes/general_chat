@@ -1,6 +1,20 @@
 import { PromptCategory } from "../types/chat.types";
 
 export const ASSISTANT_NAME = "Gengo";
+export const CHAT_INPUT_PLACEHOLDER = "Ask Gengo";
+export const LOGIN_REQUIRED_INPUT_PLACEHOLDER =
+  "Sign in with Google to continue chatting";
+
+export const CHAT_STREAM_ENDPOINT = "/api/chat/stream";
+export const FILE_UPLOAD_ENDPOINT = "/api/files/upload";
+export const FILE_UPLOAD_ERROR_MESSAGE = "File upload failed.";
+export const STREAM_FALLBACK_ERROR_MESSAGE =
+  "Sorry, I encountered an error generating a response. Please try again.";
+export const UNEXPECTED_STREAM_ERROR_MESSAGE =
+  "An unexpected error occurred.";
+export const DEFAULT_ATTACHED_FILE_MESSAGE =
+  "Please analyze or convert the attached file.";
+export const FILE_UPLOAD_FALLBACK_ERROR_MESSAGE = "Failed to upload file.";
 
 export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 export const ALLOWED_FILE_EXTENSIONS = [".pdf", ".docx"] as const;

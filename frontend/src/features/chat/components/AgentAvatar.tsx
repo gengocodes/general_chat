@@ -3,10 +3,7 @@
 import React from "react";
 import { cn } from "@/shared/lib/utils";
 import { GengoLogo } from "@/shared/ui/gengo-logo";
-
-interface AgentAvatarProps {
-  className?: string;
-}
+import { AgentAvatarProps } from "../types/chat.types";
 
 export const AgentAvatar: React.FC<AgentAvatarProps> = ({ className }) => (
   <div

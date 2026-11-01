@@ -2,7 +2,6 @@
 
 import { AnchorHTMLAttributes, FC, HTMLAttributes } from "react";
 import { ExternalLink } from "lucide-react";
-import { resolveBackendUrl } from "@/shared/api/stream";
 import {
   isFileDownloadUrl,
   resolveDownloadFilename,
@@ -14,17 +13,15 @@ const MarkdownLink: FC<AnchorHTMLAttributes<HTMLAnchorElement>> = ({
   href,
   children,
 }) => {
-  const resolvedHref = href ? resolveBackendUrl(href) : undefined;
-
-  if (resolvedHref && isFileDownloadUrl(href)) {
+  if (href && isFileDownloadUrl(href)) {
     const labelText = flattenChildrenText(children);
-    const filename = resolveDownloadFilename(resolvedHref, labelText);
-    return <GeneratedFileCard href={resolvedHref} filename={filename} />;
+    const filename = resolveDownloadFilename(href, labelText);
+    return <GeneratedFileCard href={href} filename={filename} />;
   }
 
   return (
     <a
-      href={resolvedHref}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="text-foreground font-medium underline decoration-muted-foreground/50 hover:decoration-foreground inline-flex items-center gap-1 cursor-pointer underline-offset-3 transition-colors"

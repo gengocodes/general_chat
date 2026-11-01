@@ -1,11 +1,97 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import {
+  DEFAULT_API_ERROR_MESSAGE,
+  DEFAULT_BACKEND_ORIGIN,
+  DEFAULT_LOGIN_REQUIRED_MESSAGE,
+  EMPTY_STREAM_ERROR_MESSAGE,
+  FORWARDED_REQUEST_HEADERS,
+  LOGIN_REQUIRED_ERROR_CODE,
+  SSE_STREAM_HEADERS,
+} from "./api.constants";
+import { FastApiErrorPayload } from "./api.types";
 
-export function resolveBackendUrl(urlOrPath: string): string {
-  if (urlOrPath.startsWith("/api/")) {
-    return `${API_BASE_URL}${urlOrPath}`;
+export class LoginRequiredApiError extends Error {
+  constructor(message: string = DEFAULT_LOGIN_REQUIRED_MESSAGE) {
+    super(message);
+    this.name = "LoginRequiredApiError";
   }
-  return urlOrPath;
+}
+
+/**
+ * Resolves the upstream backend origin for server-side route handlers.
+ */
+export function resolveBackendOrigin(): string {
+  const rawOrigin =
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    DEFAULT_BACKEND_ORIGIN;
+  return rawOrigin.replace(/\/+$/, "");
+}
+
+/**
+ * Builds forwarded request headers for upstream SSE proxy calls.
+ * Requests uncompressed (`identity`) responses so Node's fetch does not buffer
+ * compressed SSE frames.
+ */
+export function buildUpstreamHeaders(request: Request): Headers {
+  const headers = new Headers({
+    "Accept-Encoding": "identity",
+  });
+
+  for (const headerName of FORWARDED_REQUEST_HEADERS) {
+    const value = request.headers.get(headerName);
+    if (value !== null) {
+      headers.set(headerName, value);
+    }
+  }
+
+  return headers;
+}
+
+/**
+ * Copies all Set-Cookie headers from an upstream response onto the target Headers.
+ */
+export function appendSetCookieHeaders(source: Headers, target: Headers): void {
+  for (const cookie of source.getSetCookie()) {
+    target.append("Set-Cookie", cookie);
+  }
+}
+
+/**
+ * Forwards an upstream non-2xx or empty-body response while preserving status,
+ * Content-Type, Retry-After, and Set-Cookie headers.
+ */
+export async function buildProxyErrorResponse(
+  upstream: Response,
+): Promise<Response> {
+  const errorHeaders = new Headers();
+  const contentType = upstream.headers.get("content-type");
+  if (contentType !== null) {
+    errorHeaders.set("Content-Type", contentType);
+  }
+  const retryAfter = upstream.headers.get("retry-after");
+  if (retryAfter !== null) {
+    errorHeaders.set("Retry-After", retryAfter);
+  }
+  appendSetCookieHeaders(upstream.headers, errorHeaders);
+
+  return new Response(await upstream.text(), {
+    status: upstream.status,
+    headers: errorHeaders,
+  });
+}
+
+/**
+ * Wraps an upstream SSE ReadableStream with anti-buffering headers and forwards
+ * any Set-Cookie headers (e.g. newly issued HttpOnly guest cookies).
+ */
+export function buildProxyStreamResponse(upstream: Response): Response {
+  const responseHeaders = new Headers(SSE_STREAM_HEADERS);
+  appendSetCookieHeaders(upstream.headers, responseHeaders);
+
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: responseHeaders,
+  });
 }
 
 /**
@@ -31,31 +117,55 @@ function parseSSEEvent<T>(line: string): T | null {
 }
 
 /**
- * Extracts error details from a failed HTTP response, with fallback handling.
+ * Inspects a failed HTTP response and returns LoginRequiredApiError when the
+ * server responds with 401 and code === "login_required", or returns a readable
+ * Error for all other error cases.
  */
-export async function extractErrorMessage(
+export async function parseErrorResponse(
   response: Response,
-  fallbackMessage = "Failed to communicate with AI assistant.",
-): Promise<string> {
+  fallbackMessage: string = DEFAULT_API_ERROR_MESSAGE,
+): Promise<Error> {
   try {
-    const jsonErr = (await response.json()) as { detail?: string };
-    return jsonErr?.detail || fallbackMessage;
+    const jsonErr = (await response.json()) as FastApiErrorPayload;
+    const detail = jsonErr?.detail;
+    if (
+      response.status === 401 &&
+      typeof detail === "object" &&
+      detail !== null &&
+      detail.code === LOGIN_REQUIRED_ERROR_CODE
+    ) {
+      return new LoginRequiredApiError(detail.message);
+    }
+    if (typeof detail === "string" && detail.length > 0) {
+      return new Error(detail);
+    }
+    if (
+      typeof detail === "object" &&
+      detail !== null &&
+      typeof detail.message === "string" &&
+      detail.message.length > 0
+    ) {
+      return new Error(detail.message);
+    }
+    return new Error(fallbackMessage);
   } catch {
-    return fallbackMessage;
+    return new Error(fallbackMessage);
   }
 }
 
 /**
  * Shared HTTP SSE streaming client using native fetch and ReadableStream.
+ * Calls same-origin `/api/*` endpoints so cookies stay first-party.
  */
 export async function apiStream<T>(
   endpoint: string,
   payload: unknown,
   onEvent: (event: T) => void,
-  signal?: AbortSignal,
+  signal: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(endpoint, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -64,11 +174,11 @@ export async function apiStream<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await parseErrorResponse(response);
   }
 
   if (!response.body) {
-    throw new Error("No response stream returned by the server.");
+    throw new Error(EMPTY_STREAM_ERROR_MESSAGE);
   }
 
   const reader = response.body.getReader();

@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { LoginRequiredNotice, useAuth } from "@/features/auth";
 import { GengoLogo } from "@/shared/ui/gengo-logo";
+import {
+  CHAT_INPUT_PLACEHOLDER,
+  LOGIN_REQUIRED_INPUT_PLACEHOLDER,
+} from "../constants/chat.constants";
 import { useChat } from "../hooks/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
@@ -12,19 +17,26 @@ export const ChatWindow: React.FC = () => {
     messages,
     attachedFiles,
     sendMessage,
+    retryPendingSubmission,
     cancelStream,
     isSending,
     addAttachedFile,
     removeAttachedFile,
   } = useChat();
 
+  const { requiresLogin, refreshSession } = useAuth();
+
   const [inputValue, setInputValue] = useState("");
   const [hoveredPrompt, setHoveredPrompt] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isSending]);
+  }, [messages, isSending, requiresLogin]);
 
   const isEmptyState = messages.length === 0;
 
@@ -42,11 +54,19 @@ export const ChatWindow: React.FC = () => {
             </p>
           </div>
 
-          <div className="w-full">
+          <div className="w-full space-y-3">
+            {requiresLogin && (
+              <LoginRequiredNotice onSignedIn={retryPendingSubmission} />
+            )}
+
             <ChatInput
               value={inputValue}
               onChange={setInputValue}
-              placeholder={hoveredPrompt || "Ask Gengo"}
+              placeholder={
+                requiresLogin
+                  ? LOGIN_REQUIRED_INPUT_PLACEHOLDER
+                  : hoveredPrompt || CHAT_INPUT_PLACEHOLDER
+              }
               onSend={sendMessage}
               onCancel={cancelStream}
               isSending={isSending}
@@ -54,6 +74,7 @@ export const ChatWindow: React.FC = () => {
               onAddFile={addAttachedFile}
               onRemoveFile={removeAttachedFile}
               showDisclaimer={false}
+              disabled={requiresLogin}
             />
 
             <PromptCategorySelector
@@ -92,17 +113,26 @@ export const ChatWindow: React.FC = () => {
       </div>
 
       <footer className="w-full px-3 md:px-6 pt-2 pb-4 shrink-0">
-        <div className="max-w-3xl md:max-w-4xl mx-auto w-full">
+        <div className="max-w-3xl md:max-w-4xl mx-auto w-full space-y-2.5">
+          {requiresLogin && (
+            <LoginRequiredNotice onSignedIn={retryPendingSubmission} />
+          )}
+
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
-            placeholder="Ask Gengo"
+            placeholder={
+              requiresLogin
+                ? LOGIN_REQUIRED_INPUT_PLACEHOLDER
+                : CHAT_INPUT_PLACEHOLDER
+            }
             onSend={sendMessage}
             onCancel={cancelStream}
             isSending={isSending}
             attachedFiles={attachedFiles}
             onAddFile={addAttachedFile}
             onRemoveFile={removeAttachedFile}
+            disabled={requiresLogin}
           />
         </div>
       </footer>

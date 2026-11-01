@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:18
+    container_name: genchat-postgres
+    environment:
+      - POSTGRES_USER=genchat
+      - POSTGRES_PASSWORD=${LOCAL_POSTGRES_PASSWORD:-genchat_local_dev}
+      - POSTGRES_DB=genchat-gengo
+    ports:
+      - "5433:5432"
+    volumes:
+      - genchat-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U genchat -d genchat-gengo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   bucket-manager:
     build:
       context: ./bucket-manager
@@ -39,9 +57,18 @@ services:
       - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:3000}
       - BUCKET_MANAGER_URL=${BUCKET_MANAGER_URL:-http://bucket-manager:8001}
       - DOCUMENT_PROCESSOR_URL=${DOCUMENT_PROCESSOR_URL:-http://document-processor:8002}
+      # Local development always uses the bundled PostgreSQL, never the Neon URLs from backend/.env.
+      - DATABASE_URL=postgresql+psycopg://genchat:${LOCAL_POSTGRES_PASSWORD:-genchat_local_dev}@postgres:5432/genchat-gengo
+      - DATABASE_MIGRATION_URL=postgresql+psycopg://genchat:${LOCAL_POSTGRES_PASSWORD:-genchat_local_dev}@postgres:5432/genchat-gengo
+      - COOKIE_SECURE=false
     depends_on:
+      postgres:
+        condition: service_healthy
       bucket-manager:
         condition: service_healthy
       document-processor:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  genchat-postgres-data:

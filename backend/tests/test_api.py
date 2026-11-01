@@ -109,10 +109,17 @@ async def test_upload_empty_filename_validation():
     """Verify upload endpoint rejects empty or whitespace filename with HTTP 400."""
     mock_file = MagicMock()
     mock_file.filename = "   "
+    mock_resolved = MagicMock()
+    mock_resolved.new_guest_token = None
     storage = _DummyStorageAdapter()
     use_case = UploadFileUseCase(storage=storage)
     with pytest.raises(HTTPException) as exc_info:
-        await upload_file(file=mock_file, use_case=use_case)
+        await upload_file(
+            response=MagicMock(),
+            file=mock_file,
+            resolved=mock_resolved,
+            use_case=use_case,
+        )
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "Filename cannot be empty or invalid."
 

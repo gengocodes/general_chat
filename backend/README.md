@@ -280,12 +280,39 @@ Create Pydantic request/response schemas in `app/presentation/schemas/`, call th
 
 ---
 
-## 6. Abuse Protection: Rate Limits, Payload Bounds & File Types
+## 6. Authentication, Guest Quota & Database Migrations
+
+### Google Sign-In & 2-Free-Message Guest Quota
+- **Anonymous Guests:** On first visit (`GET /api/auth/session` or `POST /api/chat/stream`), `ResolvePrincipalUseCase` mints an `HttpOnly` signed guest JWT cookie (`genchat_guest` locally, `__Host-genchat_guest` in production when `COOKIE_SECURE=true`).
+- **Atomic Quota (`FREE_MESSAGE_LIMIT = 2`):** `ChatAccessUseCase` and `SqlAlchemyGuestUsageRepository.try_consume` perform a single atomic PostgreSQL `INSERT ... ON CONFLICT DO UPDATE ... WHERE message_count < :limit RETURNING` so concurrent requests cannot overshoot the free quota. Once exhausted, `POST /api/chat/stream` and `POST /api/files/upload` return `401` with `{"detail": {"code": "login_required", "message": "..."}}`.
+- **Google ID-Token Sign-In (`POST /api/auth/google`):** `GoogleTokenVerifierAdapter` verifies the Google ID token (`signature`, `exp`, `iss`, `aud == GOOGLE_CLIENT_ID`) via `google-auth`, requires `email_verified is True`, upserts the user in `users` (`SqlAlchemyUserRepository.register_login`), and sets an `HttpOnly` session JWT cookie (`genchat_session` / `__Host-genchat_session`). Guest and user JWTs carry distinct `aud` claims (`genchat:guest` vs `genchat:user`) to prevent token confusion.
+- **CSRF Defense:** State-changing cookie-authenticated endpoints (`/api/auth/google`, `/api/auth/logout`, `/api/chat/stream`, `/api/files/upload`) enforce `SameSite=Lax` plus `verify_request_origin` against `FRONTEND_ORIGIN`.
+
+### Alembic Database Changelog (`backend/migrations/`)
+- Runtime queries use `DATABASE_URL` (pooled Neon connection string, `prepare_threshold=None` for PgBouncer compatibility).
+- Schema migrations use `DATABASE_MIGRATION_URL` (direct non-pooler connection string).
+- Commands (run from `backend/`):
+  ```bash
+  # Apply all pending migrations
+  alembic upgrade head
+
+  # Inspect migration changelog history
+  alembic history --verbose
+
+  # Create a new migration revision
+  alembic revision -m "describe_change" --autogenerate
+  ```
+- On Google Cloud Run, run `alembic upgrade head` as a pre-deploy job rather than at container startup.
+
+---
+
+## 7. Abuse Protection: Rate Limits, Payload Bounds & File Types
 
 Implemented in the Presentation layer (`app/presentation/rate_limit.py`, wired as route dependencies in `app/presentation/dependencies.py`):
 
 | Endpoint | Setting | Default (per client IP / minute) |
 |---|---|---|
+| `POST /api/auth/google`, `GET /api/auth/session`, `POST /api/auth/logout` | `AUTH_RATE_LIMIT_PER_MINUTE` | `10` |
 | `POST /api/chat/stream` | `CHAT_RATE_LIMIT_PER_MINUTE` | `20` |
 | `POST /api/files/upload` | `UPLOAD_RATE_LIMIT_PER_MINUTE` | `10` |
 | `GET /api/files/download/{filename}` | `DOWNLOAD_RATE_LIMIT_PER_MINUTE` | `30` |
@@ -295,7 +322,7 @@ Implemented in the Presentation layer (`app/presentation/rate_limit.py`, wired a
 - `ChatRequest` bounds: `message` ≤ 8000 chars, `history` ≤ 20 entries, `attached_files` ≤ 5 (violations return `422`).
 - Only `.pdf` and `.docx` uploads are accepted (`ALLOWED_FILE_EXTENSIONS` in `app/domain/entities/file.py`); other extensions return `400`. Uploads above 10 MB return `413`.
 
-## 7. Testing & Linting Checklist
+## 8. Testing & Linting Checklist
 
 Before submitting any backend change, run both commands from the repository root:
 

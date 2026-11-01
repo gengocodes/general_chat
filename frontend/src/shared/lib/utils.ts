@@ -18,3 +18,17 @@ export function flattenChildrenText(children: React.ReactNode): string {
   });
   return parts.join(" ").trim();
 }
+
+/**
+ * Validate and return a non-empty environment variable value, throwing a clear Error if absent.
+ */
+export function requireEnvValue(
+  rawValue: string | undefined,
+  errorMessage: string,
+): string {
+  const trimmed = rawValue?.trim();
+  if (!trimmed) {
+    throw new Error(errorMessage);
+  }
+  return trimmed;
+}

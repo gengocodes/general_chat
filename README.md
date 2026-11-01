@@ -7,7 +7,7 @@
 [![Cloudflare R2](https://img.shields.io/badge/Cloudflare_R2-S3_Compatible-F38020.svg?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/r2/)
 [![Pylint](https://img.shields.io/badge/Pylint-10.0%2F10-brightgreen.svg)](https://pylint.org)
 
-GenChat is a cloud-native AI agent monorepo built with **Strict Clean Architecture** Python/FastAPI microservices (`backend/`, `bucket-manager/`, and `document-processor/`) and a feature-sliced Next.js 16 (App Router) frontend (`frontend/`). It provides real-time Server-Sent Events (SSE) token and activity streaming, bounded multi-turn tool execution, isolated document conversion (`DOCX` ↔ `PDF`), and cloud object storage backed by **Cloudflare R2** with short-lived presigned URLs and 24-hour automatic file retention.
+GenChat is a cloud-native AI agent monorepo built with **Strict Clean Architecture** Python/FastAPI microservices (`backend/`, `bucket-manager/`, and `document-processor/`), **PostgreSQL 18** persistence with **Alembic** schema migrations, **Google Sign-In** (`google-auth` + `@react-oauth/google`), and a feature-sliced Next.js 16 (App Router) frontend (`frontend/`). It provides real-time Server-Sent Events (SSE) token and activity streaming, a 2-free-message guest quota before requiring Google sign-in, bounded multi-turn tool execution, isolated document conversion (`DOCX` ↔ `PDF`), and cloud object storage backed by **Cloudflare R2** with short-lived presigned URLs and 24-hour automatic file retention.
 
 - **Backend Engineering Guide:** [`backend/README.md`](backend/README.md)
 - **Bucket-Manager Service Guide:** [`bucket-manager/README.md`](bucket-manager/README.md)
@@ -22,11 +22,13 @@ genchat/
 │   ├── app/
 │   │   ├── domain/                # Entities, value objects, stream events, domain errors
 │   │   ├── application/           # Use cases, outbound ports (ABC), prompt templates
-│   │   ├── infrastructure/        # LangChain/Gemini adapter, tool executor, HTTP adapters for bucket-manager & document-processor
-│   │   ├── presentation/          # FastAPI routers, transport schemas (DTOs), composition root
+│   │   ├── infrastructure/        # LangChain/Gemini adapter, Google & JWT auth adapters, SQLAlchemy/Postgres repositories, HTTP adapters
+│   │   ├── presentation/          # FastAPI routers, transport schemas (DTOs), cookie helpers, composition root
 │   │   ├── config.py              # Environment settings (Pydantic Settings)
 │   │   └── main.py                # ASGI entrypoint, CORS, global exception handling
-│   ├── tests/                     # Unit and API integration tests
+│   ├── migrations/                # Alembic database changelog & versioned schema revisions
+│   ├── alembic.ini                # Alembic configuration
+│   ├── tests/                     # Unit, API, and PostgreSQL integration tests
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── README.md                  # Backend developer & architecture guide
@@ -57,10 +59,11 @@ genchat/
 ├── frontend/                      # Next.js 16 (App Router), TypeScript, Tailwind CSS, Zustand
 │   ├── src/
 │   │   ├── app/                   # Root layout and application route shell
+│   │   ├── features/auth/         # Google Sign-In components, hooks, Zustand store, API service
 │   │   ├── features/chat/         # Chat UI components, hooks, Zustand store, API service
 │   │   └── shared/                # Shared SSE/HTTP API client, UI primitives, and utilities
 │   └── package.json
-├── docker-compose.yml             # Local multi-container orchestration (backend + bucket-manager + document-processor)
+├── docker-compose.yml             # Local multi-container orchestration (postgres:18 + backend + bucket-manager + document-processor)
 └── .pylintrc                      # Root linter configuration
 ```
 
@@ -114,7 +117,8 @@ Dedicated internal microservice isolating heavy document conversion dependencies
 - Fetches source bytes from `bucket-manager`, converts inside a temporary working directory, strips the source UUID prefix so converted filenames remain clean, and uploads the converted file back to `bucket-manager`.
 
 ### 4. Frontend (`frontend/`)
-- **State Management:** Zustand store (`features/chat/store/chat.store.ts`) tracking messages, uploaded file keys, active tool executions, and thought-duration timers.
+- **State Management:** Zustand stores (`features/chat/store/chat.store.ts`, `features/auth/store/auth.store.ts`) tracking messages, uploaded file keys, active tool executions, thought-duration timers, Google authentication state, and guest message quota status.
+- **First-Party API Routing & Unbuffered SSE Proxy:** `frontend/next.config.ts` proxies `/api/*` requests to `backend/` so `HttpOnly; SameSite=Lax` session and guest cookies remain first-party, while `frontend/src/app/api/chat/stream/route.ts` handles `POST /api/chat/stream` directly with `Content-Encoding: none` and `Cache-Control: no-cache, no-transform` so SSE activity and token frames flush in real time without Next.js rewrite proxy buffering.
 - **SSE Client:** Custom `ReadableStream` chunk parser (`shared/api/stream.ts`) handling incremental token and activity events over `POST /api/chat/stream`.
 - **24-Hour Retention Notice:** Clearly informs users in the attachment tray and input footer that uploaded and converted files are automatically removed after 24 hours.
 - **Iframe Embedding Protection:** Enforces `Content-Security-Policy: frame-ancestors 'self' ...` (and `X-Frame-Options: SAMEORIGIN` when no external domains are configured) via `ALLOWED_DOMAINS` in `frontend/next.config.ts`.
@@ -134,15 +138,19 @@ cp backend/.env.example backend/.env
 - Set a shared `INTERNAL_API_KEY` across all three `.env` files.
 - On Cloud Run, set `INTERNAL_IAM_AUTH_ENABLED=true` on `backend` and `document-processor` and grant their runtime service accounts `roles/run.invoker` on the private services they call (`bucket-manager`, `document-processor`). Leave it `false` locally.
 - Configure Cloudflare R2 credentials in `bucket-manager/.env`.
-- Configure `GEMINI_API_KEY` and `GEMINI_MODEL` in `backend/.env`.
+- **Configure `GEMINI_API_KEY`, `GEMINI_MODEL`, `GOOGLE_CLIENT_ID`, and `JWT_SECRET` (at least 32 characters via `openssl rand -hex 32`) in `backend/.env`.**
+- **Configure `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (same value as `GOOGLE_CLIENT_ID`) in `frontend/.env`.**
+- **Database (`DATABASE_URL` & `DATABASE_MIGRATION_URL`):** Local `docker compose` automatically overrides both with the bundled `postgres:18` service (`genchat-gengo` database), so production Neon URLs in `backend/.env` are never touched during local development.
 
-### 2. Start All Backend Microservices
+### 2. Start All Backend Microservices & Run Migrations
 
 ```bash
-docker compose up --build
+docker compose up --build -d
+docker compose exec backend alembic upgrade head
 ```
 
 - **Backend API:** `http://localhost:8000` (`GET /health`, `GET /docs`)
+- **Local PostgreSQL 18:** `localhost:5433` (`genchat-gengo`)
 - **Bucket-Manager API (Internal):** `http://localhost:8001` (`GET /health`)
 - **Document-Processor API (Internal):** `http://localhost:8002` (`GET /health`)
 

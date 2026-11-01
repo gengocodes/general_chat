@@ -52,5 +52,6 @@ backend/htmlcov/
 backend/build/
 backend/dist/
 backend/*.egg-info/
+/notes
 
 AGENTS.md

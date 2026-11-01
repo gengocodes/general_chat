@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.infrastructure.logging import setup_logging
-from app.presentation.routers import chat, upload
+from app.presentation.routers import auth, chat, upload
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(upload.router)
 

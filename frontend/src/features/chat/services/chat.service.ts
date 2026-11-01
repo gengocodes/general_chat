@@ -1,8 +1,9 @@
+import { apiStream, parseErrorResponse } from "@/shared/api/stream";
 import {
-  API_BASE_URL,
-  apiStream,
-  extractErrorMessage,
-} from "@/shared/api/stream";
+  CHAT_STREAM_ENDPOINT,
+  FILE_UPLOAD_ENDPOINT,
+  FILE_UPLOAD_ERROR_MESSAGE,
+} from "../constants/chat.constants";
 import {
   ChatServiceContract,
   AgentStreamEvent,
@@ -15,10 +16,10 @@ export const chatService: ChatServiceContract = {
   async streamMessage(
     payload: ChatRequest,
     onEvent: StreamEventCallback,
-    signal?: AbortSignal,
+    signal: AbortSignal,
   ): Promise<void> {
     return apiStream<AgentStreamEvent>(
-      "/api/chat/stream",
+      CHAT_STREAM_ENDPOINT,
       payload,
       onEvent,
       signal,
@@ -29,15 +30,14 @@ export const chatService: ChatServiceContract = {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
+    const response = await fetch(FILE_UPLOAD_ENDPOINT, {
       method: "POST",
+      credentials: "include",
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(
-        await extractErrorMessage(response, "File upload failed."),
-      );
+      throw await parseErrorResponse(response, FILE_UPLOAD_ERROR_MESSAGE);
     }
 
     return (await response.json()) as FileUploadResponse;

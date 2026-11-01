@@ -50,7 +50,17 @@ const securityHeaders = [
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
   },
+  {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin-allow-popups",
+  },
 ];
+
+const backendOrigin = (
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000"
+).replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -58,6 +68,20 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+    ];
+  },
+  /**
+   * Proxy `/api/*` requests to the FastAPI backend so `HttpOnly; SameSite=Lax`
+   * session and guest cookies remain first-party on the frontend origin.
+   * Note: `POST /api/chat/stream` is handled by `src/app/api/chat/stream/route.ts`
+   * (which takes precedence over `rewrites`) so SSE frames stream without proxy buffering.
+   */
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendOrigin}/api/:path*`,
       },
     ];
   },

@@ -3,9 +3,10 @@ File upload and download endpoints for GenChat
 """
 
 import logging
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 
+from app.domain.entities.principal import ResolvedPrincipal
 from app.domain.errors import (
     FileNotFoundDomainError,
     FileSizeLimitExceededError,
@@ -13,12 +14,15 @@ from app.domain.errors import (
 )
 from app.application.use_cases.upload_file import UploadFileUseCase
 from app.application.use_cases.get_file_download import GetFileDownloadUseCase
+from app.presentation.cookies import set_guest_cookie
 from app.presentation.schemas.file import FileUploadResponse
 from app.presentation.dependencies import (
     download_rate_limiter,
     get_upload_file_use_case,
     get_file_download_use_case,
+    require_upload_access,
     upload_rate_limiter,
+    verify_request_origin,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,13 +33,20 @@ router = APIRouter(prefix="/api/files", tags=["Files"])
 @router.post(
     "/upload",
     response_model=FileUploadResponse,
-    dependencies=[Depends(upload_rate_limiter)],
+    dependencies=[
+        Depends(upload_rate_limiter),
+        Depends(verify_request_origin),
+    ],
 )
 async def upload_file(
+    response: Response,
     file: UploadFile = File(...),
+    resolved: ResolvedPrincipal = Depends(require_upload_access),
     use_case: UploadFileUseCase = Depends(get_upload_file_use_case),
 ) -> FileUploadResponse:
     """Upload a file to Cloudflare R2 via bucket-manager for processing."""
+    if resolved.new_guest_token is not None:
+        set_guest_cookie(response, resolved.new_guest_token)
     try:
         stored = use_case.execute(file.filename or "", file.file)
         return FileUploadResponse(

@@ -3,5 +3,8 @@
 init-hook='import sys, os; sys.path.extend([os.path.abspath("backend"), os.path.abspath("."), os.path.abspath("app")])'
 source-roots=.,app,backend
 
+[TYPECHECK]
+ignored-modules=alembic.context,alembic.op
+
 [FORMAT]
 max-line-length=100
