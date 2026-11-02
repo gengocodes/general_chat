@@ -1,9 +1,9 @@
 # API Framework
-fastapi>=0.161.0
+fastapi>=0.162.0
 uvicorn[standard]>=0.54.0
 
 # Environment Configuration
-pydantic-settings>=2.16.1
+pydantic-settings>=2.16.2
 
 # HTTP Client
 httpx>=0.28.1
@@ -13,10 +13,10 @@ docx2pdf>=0.1.8
 pdf2docx>=0.5.13
 
 # Testing & Development
-pytest>=9.1.1
+pytest>=9.2.0
 anyio>=4.15.1
 
 # Google Cloud Run service-to-service auth (ID token)
 google-auth>=2.62.0
 requests>=2.34.2
-mypy>=2.4.0
+mypy>=2.4.1
