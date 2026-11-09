@@ -9,24 +9,24 @@ pydantic-settings>=2.16.2
 httpx>=0.28.1
 
 # AI / LangChain
-langchain-core>=1.7.3
-langchain-google-genai>=4.4.2
+langchain-core>=1.7.6
+langchain-google-genai>=4.4.3
 
 # Multipart Uploads
-python-multipart>=0.0.32
+python-multipart>=0.0.33
 
 # Testing & Development
 pytest>=9.2.0
-anyio>=4.15.1
+anyio>=4.16.0
 
 # Google Cloud Run service-to-service auth (ID token) and Google Sign-In ID token verification
-google-auth>=2.62.0
+google-auth>=2.62.1
 requests>=2.34.2
 
 # Persistence (Neon PostgreSQL) and schema migrations
-sqlalchemy>=2.1.6
+sqlalchemy>=2.1.8
 alembic>=1.20.1
-psycopg[binary]>=3.3.6
+psycopg[binary]>=3.3.8
 
 # Session tokens
 PyJWT>=2.15.1
